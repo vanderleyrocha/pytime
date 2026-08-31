@@ -38,21 +38,32 @@ def gerar(n_turmas: int, seed: int = 0) -> Instancia:
     ]
     disciplinas = [Disciplina(id=n, nome=n.title()) for n, *_ in CURRICULO]
 
-    # ~1 professor a cada 1,5 turma por disciplina, mínimo 1
+    # ~1 professor a cada 1,5 turma por turno por disciplina, mínimo 1
     professores: list[Professor] = []
     prof_da_disciplina: dict[str, list[str]] = {}
     for nome, *_ in CURRICULO:
-        qtd = max(1, round(n_turmas / 1.5 / 2))
+        qtd = max(1, round(n_turmas / 1.5 / len(turnos)))
         ids = [f"prof-{nome}-{k}" for k in range(qtd)]
         prof_da_disciplina[nome] = ids
         for pid in ids:
-            disponibilidade = {}
+            disponibilidade: dict[str, Disponibilidade] = {}
             if rng.random() < 0.10:  # 10%: uma manhã indisponível
                 dia = rng.randrange(DIAS)
                 disponibilidade = {
                     f"manha-d{dia}-h{h}": Disponibilidade.INDISPONIVEL
                     for h in range(SLOTS_DIA)
                 }
+            if rng.random() < 0.15:  # 15%: evita o último horário de um dia
+                dia = rng.randrange(DIAS)
+                disponibilidade.setdefault(
+                    f"manha-d{dia}-h4", Disponibilidade.EVITA,
+                )
+            if rng.random() < 0.15:  # 15%: prefere os 2 primeiros horários
+                dia = rng.randrange(DIAS)
+                for h in (0, 1):
+                    disponibilidade.setdefault(
+                        f"manha-d{dia}-h{h}", Disponibilidade.PREFERE,
+                    )
             professores.append(Professor(
                 id=pid, nome=pid, disponibilidade=disponibilidade,
             ))
