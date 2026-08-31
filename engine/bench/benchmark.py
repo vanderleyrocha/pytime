@@ -27,6 +27,13 @@ def main() -> int:
         r = resolver(inst)
         print(f"{n:>7} {n_aulas:>7} {r.status:>22} "
               f"{r.custo_total:>7} {r.tempo_segundos:>9.1f}")
+        if r.tempo_segundos > args.budget:
+            # o budget limita só o solve interno do CP-SAT; a construção do
+            # modelo e a extração do resultado ficam de fora e podem estourar
+            # um timeout externo (ex.: função serverless).
+            print(f"        aviso: tempo total {r.tempo_segundos:.1f}s excede "
+                  f"o budget {args.budget:.0f}s (overhead de "
+                  f"construção/extração fora do solver)")
         if r.status not in ("otimo", "viavel"):
             falhou = True
             if r.nucleo_conflito:

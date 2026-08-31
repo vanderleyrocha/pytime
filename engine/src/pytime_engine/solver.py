@@ -60,8 +60,9 @@ def resolver(instancia: Instancia, on_progress=None) -> Resultado:
 
     erros = instancia.validar_matriz_cheia()
     if erros:
+        tempo = time.monotonic() - inicio
         return Resultado(status="inviavel", nucleo_conflito=erros,
-                         tempo_segundos=time.monotonic() - inicio)
+                         tempo_segundos=tempo)
 
     # Fase 1: resolve SEM AddAssumptions. Assumptions degradam a busca do
     # CP-SAT (desabilitam parte do presolve e restringem a busca paralela),
@@ -81,15 +82,20 @@ def resolver(instancia: Instancia, on_progress=None) -> Resultado:
     if on_progress is not None and termos:
         callback = _CallbackProgresso(on_progress, inicio)
     status = solver.Solve(ctx.model, callback)
-    tempo = time.monotonic() - inicio
+    # `tempo_fase1` só serve para dimensionar o budget da fase 2; o tempo
+    # reportado é sempre medido no próprio ponto de retorno, para nunca
+    # subnotificar trabalho feito depois desta linha.
+    tempo_fase1 = time.monotonic() - inicio
 
     if status in (cp_model.INFEASIBLE, cp_model.MODEL_INVALID):
-        restante = instancia.budget_segundos - tempo
-        return Resultado(
-            status="inviavel", tempo_segundos=time.monotonic() - inicio,
-            nucleo_conflito=_extrair_nucleo(instancia, restante),
+        nucleo = _extrair_nucleo(
+            instancia, instancia.budget_segundos - tempo_fase1
         )
+        tempo = time.monotonic() - inicio
+        return Resultado(status="inviavel", tempo_segundos=tempo,
+                         nucleo_conflito=nucleo)
     if status == cp_model.UNKNOWN:
+        tempo = time.monotonic() - inicio
         return Resultado(status="sem_solucao_no_budget", tempo_segundos=tempo)
 
     grade = [
@@ -107,6 +113,7 @@ def resolver(instancia: Instancia, on_progress=None) -> Resultado:
         custos.append(CustoRegra(regra_id=regra_id, tipo=itens[0][3],
                                  custo=custo, detalhes=detalhes))
         total += custo
+    tempo = time.monotonic() - inicio
     return Resultado(status=_STATUS[status], grade=grade, custos=custos,
                      custo_total=total, tempo_segundos=tempo)
 
