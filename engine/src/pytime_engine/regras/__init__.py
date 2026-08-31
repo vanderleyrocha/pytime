@@ -5,3 +5,4 @@ from .base import REGISTRO, Regra, registrar
 __all__ = ["REGISTRO", "Regra", "registrar"]
 
 from . import disponibilidade  # noqa: F401,E402
+from . import geminadas  # noqa: F401,E402
