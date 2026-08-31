@@ -6,4 +6,5 @@ __all__ = ["REGISTRO", "Regra", "registrar"]
 
 from . import disponibilidade  # noqa: F401,E402
 from . import geminadas  # noqa: F401,E402
+from . import janelas  # noqa: F401,E402
 from . import recurso  # noqa: F401,E402
