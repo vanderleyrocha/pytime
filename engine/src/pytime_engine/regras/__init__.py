@@ -8,4 +8,5 @@ from . import disponibilidade  # noqa: F401,E402
 from . import distribuicao  # noqa: F401,E402
 from . import geminadas  # noqa: F401,E402
 from . import janelas  # noqa: F401,E402
+from . import preferencia_slot  # noqa: F401,E402
 from . import recurso  # noqa: F401,E402
