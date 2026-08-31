@@ -1,5 +1,7 @@
 from collections import defaultdict
 
+import pytest
+
 from conftest import instancia_minima
 from pytime_engine import resolver
 from pytime_engine.instancia import RegraConfig
@@ -41,3 +43,12 @@ def test_excesso_reportado_quando_inevitavel():
     custo = next(c for c in r.custos if c.regra_id == "r-dist")
     assert custo.custo == 2
     assert custo.detalhes  # aponta onde
+
+
+def test_max_por_dia_zero_levanta_erro():
+    inst = instancia_minima(regras=[
+        RegraConfig(id="r-dist", tipo="distribuicao_disciplina",
+                    hard=False, peso=1, parametros={"max_por_dia": 0}),
+    ])
+    with pytest.raises(ValueError, match="max_por_dia"):
+        resolver(inst)

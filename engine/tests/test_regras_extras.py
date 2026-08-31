@@ -1,5 +1,3 @@
-from collections import defaultdict
-
 from conftest import instancia_minima
 from pytime_engine import resolver
 from pytime_engine.instancia import RegraConfig

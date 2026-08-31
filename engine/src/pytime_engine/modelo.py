@@ -30,7 +30,6 @@ class ContextoModelo:
             for a in instancia.atribuicoes
             for i in range(a.carga_semanal)
         ]
-        self._turma_por_id = {t.id: t for t in instancia.turmas}
         self._slots_turma: dict[str, list[Slot]] = {
             t.id: instancia.slots_do_turno(t.turno_id)
             for t in instancia.turmas

@@ -58,6 +58,12 @@ def _montar(instancia: Instancia) -> tuple[ContextoModelo, list]:
 def resolver(instancia: Instancia, on_progress=None) -> Resultado:
     inicio = time.monotonic()
 
+    erros = instancia.validar_referencias()
+    if erros:
+        tempo = time.monotonic() - inicio
+        return Resultado(status="inviavel", nucleo_conflito=erros,
+                         tempo_segundos=tempo)
+
     erros = instancia.validar_matriz_cheia()
     if erros:
         tempo = time.monotonic() - inicio
@@ -87,10 +93,19 @@ def resolver(instancia: Instancia, on_progress=None) -> Resultado:
     # subnotificar trabalho feito depois desta linha.
     tempo_fase1 = time.monotonic() - inicio
 
-    if status in (cp_model.INFEASIBLE, cp_model.MODEL_INVALID):
+    if status == cp_model.MODEL_INVALID:
+        raise RuntimeError(
+            "Modelo CP-SAT inválido: " + ctx.model.Validate()
+        )
+    if status == cp_model.INFEASIBLE:
         nucleo = _extrair_nucleo(
             instancia, instancia.budget_segundos - tempo_fase1
         )
+        if not nucleo:
+            nucleo = [
+                "estrutural: conflito nas restrições básicas "
+                "(professor/turma/carga)"
+            ]
         tempo = time.monotonic() - inicio
         return Resultado(status="inviavel", tempo_segundos=tempo,
                          nucleo_conflito=nucleo)
@@ -135,7 +150,9 @@ def _extrair_nucleo(instancia: Instancia, budget_restante: float) -> list[str]:
         _BUDGET_NUCLEO_MIN, budget_restante
     )
     solver.parameters.num_workers = 8
-    solver.Solve(ctx.model)
+    status = solver.Solve(ctx.model)
+    if status != cp_model.INFEASIBLE:
+        return []
 
     indice_para_motivo = {
         var.Index(): motivo for motivo, var in ctx.assumptions.items()

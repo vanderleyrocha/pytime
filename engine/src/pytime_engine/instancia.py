@@ -82,6 +82,51 @@ class Instancia(BaseModel):
             key=lambda s: (s.dia, s.ordem),
         )
 
+    def validar_referencias(self) -> list[str]:
+        """Detecta ids referenciados que não existem na instância."""
+        erros = []
+        turnos_ids = {t.id for t in self.turnos}
+        turmas_ids = {t.id for t in self.turmas}
+        disciplinas_ids = {d.id for d in self.disciplinas}
+        professores_ids = {p.id for p in self.professores}
+        recursos_ids = {r.id for r in self.recursos}
+
+        for turma in self.turmas:
+            if turma.turno_id not in turnos_ids:
+                erros.append(
+                    f"Turma {turma.nome} ({turma.id}): turno_id "
+                    f"'{turma.turno_id}' não encontrado."
+                )
+        for slot in self.slots:
+            if slot.turno_id not in turnos_ids:
+                erros.append(
+                    f"Slot {slot.id}: turno_id '{slot.turno_id}' não "
+                    f"encontrado."
+                )
+        for atrib in self.atribuicoes:
+            if atrib.professor_id not in professores_ids:
+                erros.append(
+                    f"Atribuição {atrib.id}: professor_id "
+                    f"'{atrib.professor_id}' não encontrado."
+                )
+            if atrib.disciplina_id not in disciplinas_ids:
+                erros.append(
+                    f"Atribuição {atrib.id}: disciplina_id "
+                    f"'{atrib.disciplina_id}' não encontrada."
+                )
+            if atrib.turma_id not in turmas_ids:
+                erros.append(
+                    f"Atribuição {atrib.id}: turma_id "
+                    f"'{atrib.turma_id}' não encontrada."
+                )
+            for recurso_id in atrib.recurso_ids:
+                if recurso_id not in recursos_ids:
+                    erros.append(
+                        f"Atribuição {atrib.id}: recurso_id "
+                        f"'{recurso_id}' não encontrado."
+                    )
+        return erros
+
     def validar_matriz_cheia(self) -> list[str]:
         """Turma deve ter carga total igual ao nº de slots do seu turno."""
         erros = []

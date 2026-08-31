@@ -12,6 +12,11 @@ class RegraDistribuicaoDisciplina(Regra):
 
     def aplicar(self, ctx: ContextoModelo) -> None:
         max_por_dia = int(self.config.parametros.get("max_por_dia", 2))
+        if max_por_dia < 1:
+            raise ValueError(
+                "Parâmetro max_por_dia deve ser >= 1 na regra "
+                "distribuicao_disciplina"
+            )
         for atrib in ctx.instancia.atribuicoes:
             slots = ctx.slots_da_turma(atrib.turma_id)
             dias: dict[int, list] = {}
