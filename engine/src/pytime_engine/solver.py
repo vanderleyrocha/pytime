@@ -31,6 +31,30 @@ class _CallbackProgresso(cp_model.CpSolverSolutionCallback):
             pass  # progresso é best-effort; nunca derruba o solve
 
 
+#: budget mínimo (s) da fase 2, que só extrai o núcleo de conflito.
+_BUDGET_NUCLEO_MIN = 5.0
+
+
+def _montar(instancia: Instancia) -> tuple[ContextoModelo, list]:
+    """Constrói o modelo com as regras do catálogo aplicadas.
+
+    Devolve o contexto e os termos da função objetivo (regras soft).
+    """
+    ctx = ContextoModelo(instancia)
+    for config in instancia.regras:
+        if not config.ativa:
+            continue
+        if config.tipo not in REGISTRO:
+            raise ValueError(f"Regra desconhecida no catálogo: {config.tipo}")
+        REGISTRO[config.tipo](config).aplicar(ctx)
+    termos = [
+        peso * var
+        for itens in ctx.custos.values()
+        for (var, peso, _, _) in itens
+    ]
+    return ctx, termos
+
+
 def resolver(instancia: Instancia, on_progress=None) -> Resultado:
     inicio = time.monotonic()
 
@@ -39,23 +63,16 @@ def resolver(instancia: Instancia, on_progress=None) -> Resultado:
         return Resultado(status="inviavel", nucleo_conflito=erros,
                          tempo_segundos=time.monotonic() - inicio)
 
-    ctx = ContextoModelo(instancia)
-    for config in instancia.regras:
-        if not config.ativa:
-            continue
-        if config.tipo not in REGISTRO:
-            raise ValueError(f"Regra desconhecida no catálogo: {config.tipo}")
-        REGISTRO[config.tipo](config).aplicar(ctx)
-
-    termos = [
-        peso * var
-        for itens in ctx.custos.values()
-        for (var, peso, _, _) in itens
-    ]
+    # Fase 1: resolve SEM AddAssumptions. Assumptions degradam a busca do
+    # CP-SAT (desabilitam parte do presolve e restringem a busca paralela),
+    # a ponto de instâncias fáceis voltarem UNKNOWN. As regras hard seguem
+    # usando OnlyEnforceIf(lit); aqui apenas fixamos cada lit em 1, o que é
+    # semanticamente idêntico e não paga o custo das assumptions.
+    ctx, termos = _montar(instancia)
     if termos:
         ctx.model.Minimize(sum(termos))
-    if ctx.assumptions:
-        ctx.model.AddAssumptions(list(ctx.assumptions.values()))
+    for lit in ctx.assumptions.values():
+        ctx.model.Add(lit == 1)
 
     solver = cp_model.CpSolver()
     solver.parameters.max_time_in_seconds = instancia.budget_segundos
@@ -67,8 +84,11 @@ def resolver(instancia: Instancia, on_progress=None) -> Resultado:
     tempo = time.monotonic() - inicio
 
     if status in (cp_model.INFEASIBLE, cp_model.MODEL_INVALID):
-        return Resultado(status="inviavel", tempo_segundos=tempo,
-                         nucleo_conflito=_nucleo(ctx, solver))
+        restante = instancia.budget_segundos - tempo
+        return Resultado(
+            status="inviavel", tempo_segundos=time.monotonic() - inicio,
+            nucleo_conflito=_extrair_nucleo(instancia, restante),
+        )
     if status == cp_model.UNKNOWN:
         return Resultado(status="sem_solucao_no_budget", tempo_segundos=tempo)
 
@@ -91,8 +111,25 @@ def resolver(instancia: Instancia, on_progress=None) -> Resultado:
                      custo_total=total, tempo_segundos=tempo)
 
 
-def _nucleo(ctx: ContextoModelo, solver: cp_model.CpSolver) -> list[str]:
-    """Ganha corpo na Task 12 (núcleo de conflito via assumptions)."""
+def _extrair_nucleo(instancia: Instancia, budget_restante: float) -> list[str]:
+    """Fase 2: remonta o modelo com AddAssumptions só para achar o núcleo.
+
+    Só roda quando a fase 1 provou inviabilidade, então o custo das
+    assumptions não pesa no caminho feliz. A função objetivo é omitida:
+    ela não influencia a inviabilidade e só atrapalharia a extração.
+    """
+    ctx, _ = _montar(instancia)
+    if not ctx.assumptions:
+        return []
+    ctx.model.AddAssumptions(list(ctx.assumptions.values()))
+
+    solver = cp_model.CpSolver()
+    solver.parameters.max_time_in_seconds = max(
+        _BUDGET_NUCLEO_MIN, budget_restante
+    )
+    solver.parameters.num_workers = 8
+    solver.Solve(ctx.model)
+
     indice_para_motivo = {
         var.Index(): motivo for motivo, var in ctx.assumptions.items()
     }
