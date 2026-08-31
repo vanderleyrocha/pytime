@@ -15,6 +15,22 @@ _STATUS = {
 }
 
 
+class _CallbackProgresso(cp_model.CpSolverSolutionCallback):
+    def __init__(self, on_progress, inicio: float):
+        super().__init__()
+        self._on_progress = on_progress
+        self._inicio = inicio
+
+    def on_solution_callback(self) -> None:
+        try:
+            self._on_progress(
+                int(self.ObjectiveValue()),
+                time.monotonic() - self._inicio,
+            )
+        except Exception:
+            pass  # progresso é best-effort; nunca derruba o solve
+
+
 def resolver(instancia: Instancia, on_progress=None) -> Resultado:
     inicio = time.monotonic()
 
@@ -44,7 +60,10 @@ def resolver(instancia: Instancia, on_progress=None) -> Resultado:
     solver = cp_model.CpSolver()
     solver.parameters.max_time_in_seconds = instancia.budget_segundos
     solver.parameters.num_workers = 8
-    status = solver.Solve(ctx.model)
+    callback = None
+    if on_progress is not None and termos:
+        callback = _CallbackProgresso(on_progress, inicio)
+    status = solver.Solve(ctx.model, callback)
     tempo = time.monotonic() - inicio
 
     if status in (cp_model.INFEASIBLE, cp_model.MODEL_INVALID):
