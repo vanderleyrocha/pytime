@@ -1,8 +1,0 @@
-pyproject.toml
-src/pytime_engine/__init__.py
-src/pytime_engine.egg-info/PKG-INFO
-src/pytime_engine.egg-info/SOURCES.txt
-src/pytime_engine.egg-info/dependency_links.txt
-src/pytime_engine.egg-info/requires.txt
-src/pytime_engine.egg-info/top_level.txt
-tests/test_instancia.py
