@@ -1,0 +1,32 @@
+# Hooks locais: usam as ferramentas instaladas no ambiente do projeto
+# (mesmas versões do dia a dia — sem ambiente duplicado do pre-commit).
+# Instalar uma vez: pre-commit install && pre-commit install --hook-type pre-push
+repos:
+  - repo: local
+    hooks:
+      - id: ruff-check
+        name: ruff check (engine)
+        entry: ruff check --fix
+        language: system
+        types: [python]
+        files: ^engine/
+      - id: ruff-format
+        name: ruff format (engine)
+        entry: ruff format
+        language: system
+        types: [python]
+        files: ^engine/
+      - id: mypy
+        name: mypy (engine)
+        entry: python -m mypy engine/src --config-file engine/pyproject.toml
+        language: system
+        pass_filenames: false
+        files: ^engine/.*\.py$
+      # Suíte completa (~35 s) roda no pre-push, não a cada commit.
+      - id: pytest
+        name: pytest (engine, pre-push)
+        entry: python -m pytest engine/tests
+        language: system
+        pass_filenames: false
+        always_run: true
+        stages: [pre-push]
