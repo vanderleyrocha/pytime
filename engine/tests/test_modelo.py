@@ -1,6 +1,6 @@
+from conftest import instancia_minima
 from ortools.sat.python import cp_model
 
-from conftest import instancia_minima
 from pytime_engine.modelo import ContextoModelo
 
 
@@ -14,8 +14,8 @@ def resolver_bruto(ctx: ContextoModelo) -> cp_model.CpSolver:
 def test_cria_variaveis_por_aula_e_slot():
     inst = instancia_minima()
     ctx = ContextoModelo(inst)
-    assert len(ctx.aulas) == 20          # 8 + 8 + 4
-    assert len(ctx.x) == 20 * 20         # 20 aulas × 20 slots do turno
+    assert len(ctx.aulas) == 20  # 8 + 8 + 4
+    assert len(ctx.x) == 20 * 20  # 20 aulas × 20 slots do turno
 
 
 def test_estrutural_matriz_cheia_e_sem_conflito():
@@ -24,15 +24,11 @@ def test_estrutural_matriz_cheia_e_sem_conflito():
     solver = resolver_bruto(ctx)
     # cada slot da turma tem exatamente 1 aula
     for slot in ctx.slots_da_turma("t1"):
-        ocupacao = sum(
-            solver.Value(ctx.x[(i, slot.id)]) for i in range(len(ctx.aulas))
-        )
+        ocupacao = sum(solver.Value(ctx.x[(i, slot.id)]) for i in range(len(ctx.aulas)))
         assert ocupacao == 1
     # cada aula está em exatamente 1 slot
     for i in range(len(ctx.aulas)):
-        assert sum(
-            solver.Value(v) for (ai, _), v in ctx.x.items() if ai == i
-        ) == 1
+        assert sum(solver.Value(v) for (ai, _), v in ctx.x.items() if ai == i) == 1
 
 
 def test_professor_sem_conflito_entre_turmas():
@@ -51,7 +47,7 @@ def test_professor_sem_conflito_entre_turmas():
 
 def test_adicionar_custo_e_assumption():
     ctx = ContextoModelo(instancia_minima())
-    v = ctx.model.NewBoolVar("p")
+    v = ctx.model.new_bool_var("p")
     ctx.adicionar_custo("r1", "janelas_professor", v, 3, "detalhe")
     assert ctx.custos["r1"] == [(v, 3, "detalhe", "janelas_professor")]
     lit = ctx.assumption("disponibilidade:ana")

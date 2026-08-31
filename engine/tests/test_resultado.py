@@ -5,8 +5,14 @@ def test_resultado_serializa_json():
     r = Resultado(
         status="otimo",
         grade=[AulaAlocada(atribuicao_id="a1", slot_id="seg-1")],
-        custos=[CustoRegra(regra_id="r1", tipo="janelas_professor",
-                           custo=2, detalhes=["Ana: 2 janelas na segunda"])],
+        custos=[
+            CustoRegra(
+                regra_id="r1",
+                tipo="janelas_professor",
+                custo=2,
+                detalhes=["Ana: 2 janelas na segunda"],
+            )
+        ],
         custo_total=2,
         tempo_segundos=1.5,
     )
@@ -16,7 +22,10 @@ def test_resultado_serializa_json():
 
 
 def test_resultado_inviavel():
-    r = Resultado(status="inviavel", tempo_segundos=0.3,
-                  nucleo_conflito=["disponibilidade:ana", "geminadas:a1"])
+    r = Resultado(
+        status="inviavel",
+        tempo_segundos=0.3,
+        nucleo_conflito=["disponibilidade:ana", "geminadas:a1"],
+    )
     assert r.grade == []
     assert r.custo_total == 0

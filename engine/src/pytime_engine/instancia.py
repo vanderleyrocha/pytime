@@ -1,9 +1,9 @@
-from enum import Enum
+from enum import StrEnum
 
 from pydantic import BaseModel, Field
 
 
-class Disponibilidade(str, Enum):
+class Disponibilidade(StrEnum):
     DISPONIVEL = "disponivel"
     INDISPONIVEL = "indisponivel"
     PREFERE = "prefere"
@@ -17,8 +17,8 @@ class Turno(BaseModel):
 
 class Slot(BaseModel):
     id: str
-    dia: int          # 0 = segunda ... 4 = sexta
-    ordem: int        # posição no dia dentro do turno (0 = primeiro horário)
+    dia: int  # 0 = segunda ... 4 = sexta
+    ordem: int  # posição no dia dentro do turno (0 = primeiro horário)
     turno_id: str
 
 
@@ -52,13 +52,13 @@ class Atribuicao(BaseModel):
     disciplina_id: str
     turma_id: str
     carga_semanal: int = Field(ge=1)
-    geminadas: int = 0            # nº de pares de aulas consecutivas exigidos
+    geminadas: int = 0  # nº de pares de aulas consecutivas exigidos
     recurso_ids: list[str] = Field(default_factory=list)
 
 
 class RegraConfig(BaseModel):
     id: str
-    tipo: str                     # chave no REGISTRO do catálogo
+    tipo: str  # chave no REGISTRO do catálogo
     hard: bool
     peso: int = 1
     ativa: bool = True
@@ -100,8 +100,7 @@ class Instancia(BaseModel):
         for slot in self.slots:
             if slot.turno_id not in turnos_ids:
                 erros.append(
-                    f"Slot {slot.id}: turno_id '{slot.turno_id}' não "
-                    f"encontrado."
+                    f"Slot {slot.id}: turno_id '{slot.turno_id}' não encontrado."
                 )
         for atrib in self.atribuicoes:
             if atrib.professor_id not in professores_ids:
@@ -132,8 +131,7 @@ class Instancia(BaseModel):
         erros = []
         for turma in self.turmas:
             carga = sum(
-                a.carga_semanal for a in self.atribuicoes
-                if a.turma_id == turma.id
+                a.carga_semanal for a in self.atribuicoes if a.turma_id == turma.id
             )
             n_slots = len(self.slots_do_turno(turma.turno_id))
             if carga != n_slots:

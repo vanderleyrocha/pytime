@@ -1,8 +1,16 @@
 import random
 
 from .instancia import (
-    Atribuicao, Disciplina, Disponibilidade, Instancia, Professor,
-    RegraConfig, Recurso, Slot, Turma, Turno,
+    Atribuicao,
+    Disciplina,
+    Disponibilidade,
+    Instancia,
+    Professor,
+    Recurso,
+    RegraConfig,
+    Slot,
+    Turma,
+    Turno,
 )
 
 # (nome, carga semanal, exige geminada, usa laboratório)
@@ -29,11 +37,12 @@ def gerar(n_turmas: int, seed: int = 0) -> Instancia:
         turnos.append(Turno(id="tarde", nome="Tarde"))
     slots = [
         Slot(id=f"{t.id}-d{d}-h{h}", dia=d, ordem=h, turno_id=t.id)
-        for t in turnos for d in range(DIAS) for h in range(SLOTS_DIA)
+        for t in turnos
+        for d in range(DIAS)
+        for h in range(SLOTS_DIA)
     ]
     turmas = [
-        Turma(id=f"turma-{i}", nome=f"Turma {i}",
-              turno_id=turnos[i % len(turnos)].id)
+        Turma(id=f"turma-{i}", nome=f"Turma {i}", turno_id=turnos[i % len(turnos)].id)
         for i in range(n_turmas)
     ]
     disciplinas = [Disciplina(id=n, nome=n.title()) for n, *_ in CURRICULO]
@@ -67,17 +76,23 @@ def gerar(n_turmas: int, seed: int = 0) -> Instancia:
                 if rng.random() < 0.15:  # 15%: evita o último horário
                     dia = rng.randrange(DIAS)
                     disponibilidade.setdefault(
-                        f"{turno.id}-d{dia}-h4", Disponibilidade.EVITA,
+                        f"{turno.id}-d{dia}-h4",
+                        Disponibilidade.EVITA,
                     )
                 if rng.random() < 0.15:  # 15%: prefere os 2 primeiros
                     dia = rng.randrange(DIAS)
                     for h in (0, 1):
                         disponibilidade.setdefault(
-                            f"{turno.id}-d{dia}-h{h}", Disponibilidade.PREFERE,
+                            f"{turno.id}-d{dia}-h{h}",
+                            Disponibilidade.PREFERE,
                         )
-                professores.append(Professor(
-                    id=pid, nome=pid, disponibilidade=disponibilidade,
-                ))
+                professores.append(
+                    Professor(
+                        id=pid,
+                        nome=pid,
+                        disponibilidade=disponibilidade,
+                    )
+                )
 
     # nº de laboratórios escala com a demanda para não sobrecarregar um
     # único recurso compartilhado (cada turma usa 3 aulas de ciências por
@@ -100,29 +115,43 @@ def gerar(n_turmas: int, seed: int = 0) -> Instancia:
         for nome, carga, geminada, usa_lab in CURRICULO:
             profs = prof_por_turno_disciplina[(turma.turno_id, nome)]
             prof = profs[idx_no_turno % len(profs)]
-            atribuicoes.append(Atribuicao(
-                id=f"{turma.id}-{nome}",
-                professor_id=prof, disciplina_id=nome, turma_id=turma.id,
-                carga_semanal=carga,
-                geminadas=1 if geminada and carga >= 4 else 0,
-                recurso_ids=[labs[idx_no_turno % n_labs]] if usa_lab else [],
-            ))
+            atribuicoes.append(
+                Atribuicao(
+                    id=f"{turma.id}-{nome}",
+                    professor_id=prof,
+                    disciplina_id=nome,
+                    turma_id=turma.id,
+                    carga_semanal=carga,
+                    geminadas=1 if geminada and carga >= 4 else 0,
+                    recurso_ids=[labs[idx_no_turno % n_labs]] if usa_lab else [],
+                )
+            )
 
     regras = [
         RegraConfig(id="disp", tipo="disponibilidade_professor", hard=True),
         RegraConfig(id="gem", tipo="geminadas", hard=True),
         RegraConfig(id="rec", tipo="recurso_compartilhado", hard=True),
         RegraConfig(id="jan", tipo="janelas_professor", hard=False, peso=10),
-        RegraConfig(id="dist", tipo="distribuicao_disciplina", hard=False,
-                    peso=5, parametros={"max_por_dia": 2}),
-        RegraConfig(id="pref", tipo="preferencia_professor", hard=False,
-                    peso=3),
+        RegraConfig(
+            id="dist",
+            tipo="distribuicao_disciplina",
+            hard=False,
+            peso=5,
+            parametros={"max_por_dia": 2},
+        ),
+        RegraConfig(id="pref", tipo="preferencia_professor", hard=False, peso=3),
         RegraConfig(id="comp", tipo="compactacao_dias", hard=False, peso=1),
     ]
     return Instancia(
-        turnos=turnos, slots=slots, turmas=turmas, disciplinas=disciplinas,
-        professores=professores, atribuicoes=atribuicoes,
-        recursos=[Recurso(id=lab, nome=f"Lab. Informática {k}",
-                          capacidade=1) for k, lab in enumerate(labs)],
+        turnos=turnos,
+        slots=slots,
+        turmas=turmas,
+        disciplinas=disciplinas,
+        professores=professores,
+        atribuicoes=atribuicoes,
+        recursos=[
+            Recurso(id=lab, nome=f"Lab. Informática {k}", capacidade=1)
+            for k, lab in enumerate(labs)
+        ],
         regras=regras,
     )

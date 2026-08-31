@@ -10,7 +10,8 @@ class RegraDisponibilidadeProfessor(Regra):
     def aplicar(self, ctx: ContextoModelo) -> None:
         indisp_por_prof = {
             p.id: {
-                s for s, st in p.disponibilidade.items()
+                s
+                for s, st in p.disponibilidade.items()
                 if st == Disponibilidade.INDISPONIVEL
             }
             for p in ctx.instancia.professores
@@ -20,6 +21,4 @@ class RegraDisponibilidadeProfessor(Regra):
             for slot_id in indisp_por_prof.get(prof_id, ()):
                 if (i, slot_id) in ctx.x:
                     lit = ctx.assumption(f"disponibilidade:{prof_id}")
-                    ctx.model.Add(
-                        ctx.x[(i, slot_id)] == 0
-                    ).OnlyEnforceIf(lit)
+                    ctx.model.add(ctx.x[(i, slot_id)] == 0).only_enforce_if(lit)

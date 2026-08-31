@@ -17,12 +17,12 @@ class RegraGeminadas(Regra):
                 continue
             slots = ctx.slots_da_turma(atrib.turma_id)
             pares = []
-            for s1, s2 in zip(slots, slots[1:]):
+            for s1, s2 in zip(slots, slots[1:], strict=False):
                 if s1.dia != s2.dia or s2.ordem != s1.ordem + 1:
                     continue
-                par = ctx.model.NewBoolVar(f"par_{atrib.id}_{s1.id}")
-                ctx.model.Add(par <= ctx.occ_atribuicao(atrib.id, s1.id))
-                ctx.model.Add(par <= ctx.occ_atribuicao(atrib.id, s2.id))
+                par = ctx.model.new_bool_var(f"par_{atrib.id}_{s1.id}")
+                ctx.model.add(par <= ctx.occ_atribuicao(atrib.id, s1.id))
+                ctx.model.add(par <= ctx.occ_atribuicao(atrib.id, s2.id))
                 pares.append(par)
             lit = ctx.assumption(f"geminadas:{atrib.id}")
-            ctx.model.Add(sum(pares) >= atrib.geminadas).OnlyEnforceIf(lit)
+            ctx.model.add(sum(pares) >= atrib.geminadas).only_enforce_if(lit)

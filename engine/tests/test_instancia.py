@@ -1,8 +1,14 @@
 import pytest
 from pydantic import ValidationError
+
 from pytime_engine.instancia import (
-    Atribuicao, Disciplina, Disponibilidade, Instancia, Professor,
-    RegraConfig, Recurso, Slot, Turma, Turno,
+    Atribuicao,
+    Disciplina,
+    Instancia,
+    Professor,
+    Slot,
+    Turma,
+    Turno,
 )
 
 
@@ -16,10 +22,15 @@ def instancia_2slots() -> Instancia:
         turmas=[Turma(id="6a", nome="6º A", turno_id="manha")],
         disciplinas=[Disciplina(id="mat", nome="Matemática")],
         professores=[Professor(id="ana", nome="Ana")],
-        atribuicoes=[Atribuicao(
-            id="a1", professor_id="ana", disciplina_id="mat",
-            turma_id="6a", carga_semanal=2,
-        )],
+        atribuicoes=[
+            Atribuicao(
+                id="a1",
+                professor_id="ana",
+                disciplina_id="mat",
+                turma_id="6a",
+                carga_semanal=2,
+            )
+        ],
     )
 
 

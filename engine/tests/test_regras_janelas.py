@@ -1,6 +1,7 @@
 from collections import defaultdict
 
 from conftest import instancia_minima
+
 from pytime_engine import resolver
 from pytime_engine.instancia import Disponibilidade, RegraConfig
 
@@ -19,10 +20,11 @@ def contar_janelas(grade, prefixo_prof_atribs: list[str]) -> int:
 
 
 def test_solver_elimina_janelas_quando_possivel():
-    inst = instancia_minima(regras=[
-        RegraConfig(id="r-jan", tipo="janelas_professor",
-                    hard=False, peso=10),
-    ])
+    inst = instancia_minima(
+        regras=[
+            RegraConfig(id="r-jan", tipo="janelas_professor", hard=False, peso=10),
+        ]
+    )
     r = resolver(inst)
     assert r.status == "otimo"
     # com uma única turma cada professor pode sempre ficar compacto
@@ -37,16 +39,15 @@ def test_janela_forcada_e_reportada():
     disponiveis = {"manha-d0-h0", "manha-d0-h2", "manha-d1-h0", "manha-d1-h2"}
     indisp = {
         f"manha-d{d}-h{h}": Disponibilidade.INDISPONIVEL
-        for d in range(5) for h in range(4)
+        for d in range(5)
+        for h in range(4)
         if f"manha-d{d}-h{h}" not in disponiveis
     }
     inst = instancia_minima(
         disponibilidade={"prof-his": indisp},
         regras=[
-            RegraConfig(id="r-disp", tipo="disponibilidade_professor",
-                        hard=True),
-            RegraConfig(id="r-jan", tipo="janelas_professor",
-                        hard=False, peso=1),
+            RegraConfig(id="r-disp", tipo="disponibilidade_professor", hard=True),
+            RegraConfig(id="r-jan", tipo="janelas_professor", hard=False, peso=1),
         ],
     )
     r = resolver(inst)

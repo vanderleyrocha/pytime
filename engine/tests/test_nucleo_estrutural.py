@@ -1,6 +1,12 @@
 from pytime_engine import resolver
 from pytime_engine.instancia import (
-    Atribuicao, Disciplina, Instancia, Professor, Slot, Turma, Turno,
+    Atribuicao,
+    Disciplina,
+    Instancia,
+    Professor,
+    Slot,
+    Turma,
+    Turno,
 )
 
 
@@ -22,10 +28,20 @@ def _instancia_estruturalmente_inviavel() -> Instancia:
         disciplinas=[Disciplina(id="mat", nome="Matemática")],
         professores=[Professor(id="p1", nome="Prof 1")],
         atribuicoes=[
-            Atribuicao(id="a1", professor_id="p1", disciplina_id="mat",
-                       turma_id="t1", carga_semanal=2),
-            Atribuicao(id="a2", professor_id="p1", disciplina_id="mat",
-                       turma_id="t2", carga_semanal=2),
+            Atribuicao(
+                id="a1",
+                professor_id="p1",
+                disciplina_id="mat",
+                turma_id="t1",
+                carga_semanal=2,
+            ),
+            Atribuicao(
+                id="a2",
+                professor_id="p1",
+                disciplina_id="mat",
+                turma_id="t2",
+                carga_semanal=2,
+            ),
         ],
         budget_segundos=10,
     )

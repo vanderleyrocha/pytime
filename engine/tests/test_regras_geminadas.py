@@ -1,6 +1,7 @@
 from collections import defaultdict
 
 from conftest import instancia_minima
+
 from pytime_engine import resolver
 from pytime_engine.instancia import RegraConfig
 
@@ -19,7 +20,7 @@ def pares_consecutivos(grade, atribuicao_id):
     for ordens in ordens_por_dia.values():
         ordens.sort()
         pares += sum(
-            1 for o1, o2 in zip(ordens, ordens[1:]) if o2 == o1 + 1
+            1 for o1, o2 in zip(ordens, ordens[1:], strict=False) if o2 == o1 + 1
         )
     return pares
 

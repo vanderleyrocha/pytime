@@ -9,14 +9,11 @@ class RegraRecursoCompartilhado(Regra):
     def aplicar(self, ctx: ContextoModelo) -> None:
         for recurso in ctx.instancia.recursos:
             usuarias = [
-                a for a in ctx.instancia.atribuicoes
-                if recurso.id in a.recurso_ids
+                a for a in ctx.instancia.atribuicoes if recurso.id in a.recurso_ids
             ]
             if not usuarias:
                 continue
             lit = ctx.assumption(f"recurso:{recurso.id}")
             for slot in ctx.instancia.slots:
-                uso = sum(
-                    ctx.occ_atribuicao(a.id, slot.id) for a in usuarias
-                )
-                ctx.model.Add(uso <= recurso.capacidade).OnlyEnforceIf(lit)
+                uso = sum(ctx.occ_atribuicao(a.id, slot.id) for a in usuarias)
+                ctx.model.add(uso <= recurso.capacidade).only_enforce_if(lit)

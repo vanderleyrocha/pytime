@@ -48,9 +48,7 @@ def _montar(instancia: Instancia) -> tuple[ContextoModelo, list]:
             raise ValueError(f"Regra desconhecida no catálogo: {config.tipo}")
         REGISTRO[config.tipo](config).aplicar(ctx)
     termos = [
-        peso * var
-        for itens in ctx.custos.values()
-        for (var, peso, _, _) in itens
+        peso * var for itens in ctx.custos.values() for (var, peso, _, _) in itens
     ]
     return ctx, termos
 
@@ -61,14 +59,12 @@ def resolver(instancia: Instancia, on_progress=None) -> Resultado:
     erros = instancia.validar_referencias()
     if erros:
         tempo = time.monotonic() - inicio
-        return Resultado(status="inviavel", nucleo_conflito=erros,
-                         tempo_segundos=tempo)
+        return Resultado(status="inviavel", nucleo_conflito=erros, tempo_segundos=tempo)
 
     erros = instancia.validar_matriz_cheia()
     if erros:
         tempo = time.monotonic() - inicio
-        return Resultado(status="inviavel", nucleo_conflito=erros,
-                         tempo_segundos=tempo)
+        return Resultado(status="inviavel", nucleo_conflito=erros, tempo_segundos=tempo)
 
     # Fase 1: resolve SEM AddAssumptions. Assumptions degradam a busca do
     # CP-SAT (desabilitam parte do presolve e restringem a busca paralela),
@@ -77,9 +73,9 @@ def resolver(instancia: Instancia, on_progress=None) -> Resultado:
     # semanticamente idêntico e não paga o custo das assumptions.
     ctx, termos = _montar(instancia)
     if termos:
-        ctx.model.Minimize(sum(termos))
+        ctx.model.minimize(sum(termos))
     for lit in ctx.assumptions.values():
-        ctx.model.Add(lit == 1)
+        ctx.model.add(lit == 1)
 
     solver = cp_model.CpSolver()
     solver.parameters.max_time_in_seconds = instancia.budget_segundos
@@ -94,21 +90,17 @@ def resolver(instancia: Instancia, on_progress=None) -> Resultado:
     tempo_fase1 = time.monotonic() - inicio
 
     if status == cp_model.MODEL_INVALID:
-        raise RuntimeError(
-            "Modelo CP-SAT inválido: " + ctx.model.Validate()
-        )
+        raise RuntimeError("Modelo CP-SAT inválido: " + ctx.model.validate())
     if status == cp_model.INFEASIBLE:
-        nucleo = _extrair_nucleo(
-            instancia, instancia.budget_segundos - tempo_fase1
-        )
+        nucleo = _extrair_nucleo(instancia, instancia.budget_segundos - tempo_fase1)
         if not nucleo:
             nucleo = [
-                "estrutural: conflito nas restrições básicas "
-                "(professor/turma/carga)"
+                "estrutural: conflito nas restrições básicas (professor/turma/carga)"
             ]
         tempo = time.monotonic() - inicio
-        return Resultado(status="inviavel", tempo_segundos=tempo,
-                         nucleo_conflito=nucleo)
+        return Resultado(
+            status="inviavel", tempo_segundos=tempo, nucleo_conflito=nucleo
+        )
     if status == cp_model.UNKNOWN:
         tempo = time.monotonic() - inicio
         return Resultado(status="sem_solucao_no_budget", tempo_segundos=tempo)
@@ -122,15 +114,21 @@ def resolver(instancia: Instancia, on_progress=None) -> Resultado:
     total = 0
     for regra_id, itens in ctx.custos.items():
         custo = sum(peso * solver.Value(var) for (var, peso, _, _) in itens)
-        detalhes = [
-            desc for (var, _, desc, _) in itens if solver.Value(var) > 0
-        ]
-        custos.append(CustoRegra(regra_id=regra_id, tipo=itens[0][3],
-                                 custo=custo, detalhes=detalhes))
+        detalhes = [desc for (var, _, desc, _) in itens if solver.Value(var) > 0]
+        custos.append(
+            CustoRegra(
+                regra_id=regra_id, tipo=itens[0][3], custo=custo, detalhes=detalhes
+            )
+        )
         total += custo
     tempo = time.monotonic() - inicio
-    return Resultado(status=_STATUS[status], grade=grade, custos=custos,
-                     custo_total=total, tempo_segundos=tempo)
+    return Resultado(
+        status=_STATUS[status],
+        grade=grade,
+        custos=custos,
+        custo_total=total,
+        tempo_segundos=tempo,
+    )
 
 
 def _extrair_nucleo(instancia: Instancia, budget_restante: float) -> list[str]:
@@ -143,12 +141,10 @@ def _extrair_nucleo(instancia: Instancia, budget_restante: float) -> list[str]:
     ctx, _ = _montar(instancia)
     if not ctx.assumptions:
         return []
-    ctx.model.AddAssumptions(list(ctx.assumptions.values()))
+    ctx.model.add_assumptions(list(ctx.assumptions.values()))
 
     solver = cp_model.CpSolver()
-    solver.parameters.max_time_in_seconds = max(
-        _BUDGET_NUCLEO_MIN, budget_restante
-    )
+    solver.parameters.max_time_in_seconds = max(_BUDGET_NUCLEO_MIN, budget_restante)
     solver.parameters.num_workers = 8
     status = solver.Solve(ctx.model)
     if status != cp_model.INFEASIBLE:

@@ -12,11 +12,13 @@ class RegraPreferenciaProfessor(Regra):
     def aplicar(self, ctx: ContextoModelo) -> None:
         for prof in ctx.instancia.professores:
             evita = {
-                s for s, st in prof.disponibilidade.items()
+                s
+                for s, st in prof.disponibilidade.items()
                 if st == Disponibilidade.EVITA
             }
             prefere = {
-                s for s, st in prof.disponibilidade.items()
+                s
+                for s, st in prof.disponibilidade.items()
                 if st == Disponibilidade.PREFERE
             }
             for i, aula in enumerate(ctx.aulas):
@@ -26,16 +28,19 @@ class RegraPreferenciaProfessor(Regra):
                     var = ctx.x[(i, s.id)]
                     if s.id in evita:
                         ctx.adicionar_custo(
-                            self.config.id, self.tipo, var,
+                            self.config.id,
+                            self.tipo,
+                            var,
                             self.config.peso,
                             f"{prof.nome}: aula em slot evitado {s.id}",
                         )
                     elif prefere and s.id not in prefere:
                         ctx.adicionar_custo(
-                            self.config.id, self.tipo, var,
+                            self.config.id,
+                            self.tipo,
+                            var,
                             self.config.peso,
-                            f"{prof.nome}: aula fora dos slots preferidos "
-                            f"({s.id})",
+                            f"{prof.nome}: aula fora dos slots preferidos ({s.id})",
                         )
 
 
@@ -59,13 +64,13 @@ class RegraPreferenciaDisciplina(Regra):
                 continue
             for s in ctx.slots_da_turma(aula.atribuicao.turma_id):
                 penaliza = (
-                    s.ordem in ordens if modo == "evita"
-                    else s.ordem not in ordens
+                    s.ordem in ordens if modo == "evita" else s.ordem not in ordens
                 )
                 if penaliza:
                     ctx.adicionar_custo(
-                        self.config.id, self.tipo, ctx.x[(i, s.id)],
+                        self.config.id,
+                        self.tipo,
+                        ctx.x[(i, s.id)],
                         self.config.peso,
-                        f"{disciplina_id}: aula na ordem {s.ordem} "
-                        f"(modo {modo})",
+                        f"{disciplina_id}: aula na ordem {s.ordem} (modo {modo})",
                     )

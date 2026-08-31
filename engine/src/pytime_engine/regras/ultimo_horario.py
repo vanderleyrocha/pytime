@@ -23,12 +23,13 @@ class RegraUltimoHorario(Regra):
                     continue
                 var = ctx.x[(i, s.id)]
                 if self.config.hard:
-                    lit = ctx.assumption(
-                        f"ultimo_horario:{self.config.id}"
-                    )
-                    ctx.model.Add(var == 0).OnlyEnforceIf(lit)
+                    lit = ctx.assumption(f"ultimo_horario:{self.config.id}")
+                    ctx.model.add(var == 0).only_enforce_if(lit)
                 else:
                     ctx.adicionar_custo(
-                        self.config.id, self.tipo, var, self.config.peso,
+                        self.config.id,
+                        self.tipo,
+                        var,
+                        self.config.peso,
                         f"{disciplina_id}: aula no último horário ({s.id})",
                     )

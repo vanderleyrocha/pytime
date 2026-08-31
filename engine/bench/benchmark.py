@@ -3,6 +3,7 @@
 Uso: python bench/benchmark.py [--turmas 20 40 80] [--budget 60]
 Sai com código 1 se algum caso não alcançar solução viável no budget.
 """
+
 import argparse
 import sys
 
@@ -12,28 +13,30 @@ from pytime_engine.gerador import gerar
 
 def main() -> int:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--turmas", nargs="+", type=int,
-                        default=[20, 40, 80])
+    parser.add_argument("--turmas", nargs="+", type=int, default=[20, 40, 80])
     parser.add_argument("--budget", type=float, default=60.0)
     args = parser.parse_args()
 
-    print(f"{'turmas':>7} {'aulas':>7} {'status':>22} "
-          f"{'custo':>7} {'tempo(s)':>9}")
+    print(f"{'turmas':>7} {'aulas':>7} {'status':>22} {'custo':>7} {'tempo(s)':>9}")
     falhou = False
     for n in args.turmas:
         inst = gerar(n, seed=7)
         inst.budget_segundos = args.budget
         n_aulas = sum(a.carga_semanal for a in inst.atribuicoes)
         r = resolver(inst)
-        print(f"{n:>7} {n_aulas:>7} {r.status:>22} "
-              f"{r.custo_total:>7} {r.tempo_segundos:>9.1f}")
+        print(
+            f"{n:>7} {n_aulas:>7} {r.status:>22} "
+            f"{r.custo_total:>7} {r.tempo_segundos:>9.1f}"
+        )
         if r.tempo_segundos > args.budget:
             # o budget limita só o solve interno do CP-SAT; a construção do
             # modelo e a extração do resultado ficam de fora e podem estourar
             # um timeout externo (ex.: função serverless).
-            print(f"        aviso: tempo total {r.tempo_segundos:.1f}s excede "
-                  f"o budget {args.budget:.0f}s (overhead de "
-                  f"construção/extração fora do solver)")
+            print(
+                f"        aviso: tempo total {r.tempo_segundos:.1f}s excede "
+                f"o budget {args.budget:.0f}s (overhead de "
+                f"construção/extração fora do solver)"
+            )
         if r.status not in ("otimo", "viavel"):
             falhou = True
             if r.nucleo_conflito:

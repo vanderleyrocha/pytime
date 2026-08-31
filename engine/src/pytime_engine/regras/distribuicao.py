@@ -14,8 +14,7 @@ class RegraDistribuicaoDisciplina(Regra):
         max_por_dia = int(self.config.parametros.get("max_por_dia", 2))
         if max_por_dia < 1:
             raise ValueError(
-                "Parâmetro max_por_dia deve ser >= 1 na regra "
-                "distribuicao_disciplina"
+                "Parâmetro max_por_dia deve ser >= 1 na regra distribuicao_disciplina"
             )
         for atrib in ctx.instancia.atribuicoes:
             slots = ctx.slots_da_turma(atrib.turma_id)
@@ -23,32 +22,33 @@ class RegraDistribuicaoDisciplina(Regra):
             for s in slots:
                 dias.setdefault(s.dia, []).append(s)
             disciplina = next(
-                d.nome for d in ctx.instancia.disciplinas
-                if d.id == atrib.disciplina_id
+                d.nome for d in ctx.instancia.disciplinas if d.id == atrib.disciplina_id
             )
             dia_usado_vars = []
             for dia, slots_dia in sorted(dias.items()):
-                no_dia = sum(
-                    ctx.occ_atribuicao(atrib.id, s.id) for s in slots_dia
-                )
-                excesso = ctx.model.NewIntVar(
+                no_dia = sum(ctx.occ_atribuicao(atrib.id, s.id) for s in slots_dia)
+                excesso = ctx.model.new_int_var(
                     0, len(slots_dia), f"exc_{atrib.id}_{dia}"
                 )
-                ctx.model.Add(excesso >= no_dia - max_por_dia)
+                ctx.model.add(excesso >= no_dia - max_por_dia)
                 ctx.adicionar_custo(
-                    self.config.id, self.tipo, excesso, self.config.peso,
+                    self.config.id,
+                    self.tipo,
+                    excesso,
+                    self.config.peso,
                     f"{disciplina} ({atrib.turma_id}): excesso no dia {dia}",
                 )
-                usado = ctx.model.NewBoolVar(f"dia_{atrib.id}_{dia}")
-                ctx.model.Add(no_dia >= 1).OnlyEnforceIf(usado)
-                ctx.model.Add(no_dia == 0).OnlyEnforceIf(usado.Not())
+                usado = ctx.model.new_bool_var(f"dia_{atrib.id}_{dia}")
+                ctx.model.add(no_dia >= 1).only_enforce_if(usado)
+                ctx.model.add(no_dia == 0).only_enforce_if(usado.Not())
                 dia_usado_vars.append(usado)
-            dias_min = min(
-                math.ceil(atrib.carga_semanal / max_por_dia), len(dias)
-            )
-            falta = ctx.model.NewIntVar(0, len(dias), f"falta_{atrib.id}")
-            ctx.model.Add(falta >= dias_min - sum(dia_usado_vars))
+            dias_min = min(math.ceil(atrib.carga_semanal / max_por_dia), len(dias))
+            falta = ctx.model.new_int_var(0, len(dias), f"falta_{atrib.id}")
+            ctx.model.add(falta >= dias_min - sum(dia_usado_vars))
             ctx.adicionar_custo(
-                self.config.id, self.tipo, falta, self.config.peso,
+                self.config.id,
+                self.tipo,
+                falta,
+                self.config.peso,
                 f"{disciplina} ({atrib.turma_id}): concentrada em poucos dias",
             )

@@ -1,4 +1,5 @@
 from conftest import instancia_minima
+
 from pytime_engine import resolver
 from pytime_engine.instancia import Disponibilidade, RegraConfig
 
@@ -14,7 +15,8 @@ def test_nucleo_aponta_so_o_professor_em_choque():
     # devolvido não seja mínimo.
     indisp = {
         f"manha-d{d}-h{h}": Disponibilidade.INDISPONIVEL
-        for d in range(5) for h in range(4)
+        for d in range(5)
+        for h in range(4)
     }
     inst = instancia_minima(
         disponibilidade={
@@ -23,8 +25,7 @@ def test_nucleo_aponta_so_o_professor_em_choque():
         },
         geminadas={"por": 1},
         regras=[
-            RegraConfig(id="r-disp", tipo="disponibilidade_professor",
-                        hard=True),
+            RegraConfig(id="r-disp", tipo="disponibilidade_professor", hard=True),
             RegraConfig(id="r-gem", tipo="geminadas", hard=True),
         ],
     )
@@ -38,9 +39,11 @@ def test_nucleo_aponta_so_o_professor_em_choque():
 
 
 def test_instancia_viavel_tem_nucleo_vazio():
-    inst = instancia_minima(regras=[
-        RegraConfig(id="r-disp", tipo="disponibilidade_professor", hard=True),
-    ])
+    inst = instancia_minima(
+        regras=[
+            RegraConfig(id="r-disp", tipo="disponibilidade_professor", hard=True),
+        ]
+    )
     r = resolver(inst)
     assert r.status == "otimo"
     assert r.nucleo_conflito == []
