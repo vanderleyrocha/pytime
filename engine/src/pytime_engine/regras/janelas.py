@@ -19,15 +19,17 @@ class RegraJanelasProfessor(Regra):
             ]
             if not atribs:
                 continue
-            # slots onde o professor pode dar aula, agrupados por dia
-            slots_por_dia: dict[int, list] = {}
+            # slots onde o professor pode dar aula, agrupados por (turno, dia)
+            slots_por_turno_dia: dict[tuple[str, int], list] = {}
             vistos = set()
             for a in atribs:
                 for s in ctx.slots_da_turma(a.turma_id):
                     if s.id not in vistos:
                         vistos.add(s.id)
-                        slots_por_dia.setdefault(s.dia, []).append(s)
-            for dia, slots in sorted(slots_por_dia.items()):
+                        slots_por_turno_dia.setdefault(
+                            (s.turno_id, s.dia), []
+                        ).append(s)
+            for (turno_id, dia), slots in sorted(slots_por_turno_dia.items()):
                 slots.sort(key=lambda s: s.ordem)
                 k = len(slots)
                 if k < 3:
@@ -35,18 +37,18 @@ class RegraJanelasProfessor(Regra):
                 occ = [
                     ctx.occ_professor(prof.id, s.id) for s in slots
                 ]
-                primeiro = ctx.model.NewIntVar(0, k - 1, f"pri_{prof.id}_{dia}")
-                ultimo = ctx.model.NewIntVar(0, k - 1, f"ult_{prof.id}_{dia}")
+                chave = f"{prof.id}_{turno_id}_{dia}"
+                primeiro = ctx.model.NewIntVar(0, k - 1, f"pri_{chave}")
+                ultimo = ctx.model.NewIntVar(0, k - 1, f"ult_{chave}")
                 occ_vars = []
                 for idx, expr in enumerate(occ):
-                    b = ctx.model.NewBoolVar(f"occ_{prof.id}_{dia}_{idx}")
+                    b = ctx.model.NewBoolVar(f"occ_{chave}_{idx}")
                     ctx.model.Add(expr == 1).OnlyEnforceIf(b)
                     ctx.model.Add(expr == 0).OnlyEnforceIf(b.Not())
                     ctx.model.Add(primeiro <= idx).OnlyEnforceIf(b)
                     ctx.model.Add(ultimo >= idx).OnlyEnforceIf(b)
                     occ_vars.append(b)
-                janelas = ctx.model.NewIntVar(0, k - 2,
-                                              f"jan_{prof.id}_{dia}")
+                janelas = ctx.model.NewIntVar(0, k - 2, f"jan_{chave}")
                 ctx.model.Add(
                     janelas >= ultimo - primeiro + 1 - sum(occ_vars)
                 )

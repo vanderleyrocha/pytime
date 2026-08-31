@@ -31,11 +31,15 @@ def test_solver_elimina_janelas_quando_possivel():
 
 
 def test_janela_forcada_e_reportada():
-    # prof-his dá 4 aulas; força indisponibilidade que cria janela na segunda:
-    # disponível só em h0 e h2 na segunda -> se der 2 aulas na segunda, 1 janela.
-    indisp = {"manha-d0-h1": Disponibilidade.INDISPONIVEL}
-    # forçar as 4 aulas de his em 2 dias com furo é difícil de garantir;
-    # em vez disso validamos que o custo reportado == janelas reais da grade.
+    # prof-his dá 4 aulas; disponível apenas em manha-d0-h0, manha-d0-h2,
+    # manha-d1-h0, manha-d1-h2 (exatamente 4 slots = carga 4), forçando toda
+    # a alocação: 2 dias com padrão h0,_,h2 -> exatamente 1 janela por dia.
+    disponiveis = {"manha-d0-h0", "manha-d0-h2", "manha-d1-h0", "manha-d1-h2"}
+    indisp = {
+        f"manha-d{d}-h{h}": Disponibilidade.INDISPONIVEL
+        for d in range(5) for h in range(4)
+        if f"manha-d{d}-h{h}" not in disponiveis
+    }
     inst = instancia_minima(
         disponibilidade={"prof-his": indisp},
         regras=[
@@ -48,5 +52,5 @@ def test_janela_forcada_e_reportada():
     r = resolver(inst)
     assert r.status == "otimo"
     custo_jan = next(c for c in r.custos if c.regra_id == "r-jan")
-    assert custo_jan.custo == contar_janelas(r.grade, ["a-his"]) + \
-        contar_janelas(r.grade, ["a-mat"]) + contar_janelas(r.grade, ["a-por"])
+    assert custo_jan.custo == 2
+    assert custo_jan.custo == contar_janelas(r.grade, ["a-his"])
