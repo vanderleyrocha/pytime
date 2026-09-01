@@ -8,9 +8,14 @@ export type Perfil = {
 
 export async function obterPerfis(): Promise<Perfil[]> {
   const supabase = await criarClienteServidor();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return [];
   const { data, error } = await supabase
     .from("perfis")
     .select("unidade_id, papel, unidades(nome)")
+    .eq("user_id", user.id)
     .order("criado_em");
   if (error || !data) return [];
   return data.map((p) => ({
