@@ -89,6 +89,11 @@ próxima.
 ## Comandos de validação
 
 ```bash
+cd app && npm run teste && npm run lint && npm run build   # app Next.js
+# RLS via pgTAP (runner próprio; Docker não é usado):
+#   defina SUPABASE_DB_URL (ver .env.example) e rode:
+python supabase/tests/rodar_testes.py
+
 cd engine
 pytest                              # suíte completa (47+ testes)
 pytest --cov=pytime_engine --cov-report=term-missing   # cobertura
