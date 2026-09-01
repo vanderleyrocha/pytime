@@ -34,7 +34,15 @@ export function FormularioConvite() {
       </Button>
       {estado.erro && <p className="text-sm text-red-600">{estado.erro}</p>}
       {estado.sucesso && (
-        <p className="text-sm text-green-700">Convite criado.</p>
+        <p
+          className={
+            estado.aviso
+              ? "text-sm text-amber-600"
+              : "text-sm text-green-700"
+          }
+        >
+          {estado.aviso ?? "Convite criado."}
+        </p>
       )}
     </form>
   );

@@ -6,7 +6,11 @@ import { criarClienteServico } from "@/lib/supabase/cliente-servico";
 import { obterUnidadeAtiva } from "@/lib/unidade-ativa";
 import { esquemaConvite } from "@/lib/validacao/auth";
 
-export type EstadoConvite = { erro?: string; sucesso?: boolean };
+export type EstadoConvite = {
+  erro?: string;
+  sucesso?: boolean;
+  aviso?: string;
+};
 
 export async function criarConvite(
   _anterior: EstadoConvite,
@@ -37,17 +41,24 @@ export async function criarConvite(
   if (error || !data) {
     return { erro: "Não foi possível criar o convite." };
   }
-  // E-mail best-effort via Supabase Auth; se o usuário já existir, o
+  // E-mail via Supabase Auth; se falhar (ou se o usuário já existir), o
   // convite continua válido pelo link copiável exibido na lista.
-  try {
-    const servico = criarClienteServico();
-    await servico.auth.admin.inviteUserByEmail(dados.data.email, {
+  const servico = criarClienteServico();
+  const { error: erroEmail } = await servico.auth.admin.inviteUserByEmail(
+    dados.data.email,
+    {
       redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/convite/${data.token}`,
-    });
-  } catch {
-    // silencioso: o link copiável cobre este caso
-  }
+    },
+  );
   revalidatePath("/convites");
+  if (erroEmail) {
+    console.error("Falha ao enviar e-mail de convite:", erroEmail.message);
+    return {
+      sucesso: true,
+      aviso:
+        "Convite criado, mas o e-mail não pôde ser enviado — copie o link da lista e envie manualmente.",
+    };
+  }
   return { sucesso: true };
 }
 
