@@ -2,6 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { criarClienteServidor } from "@/lib/supabase/cliente-servidor";
+import { ehCaminhoInterno } from "@/lib/rotas";
 import { esquemaLogin } from "@/lib/validacao/auth";
 
 export type EstadoAuth = { erro?: string };
@@ -26,7 +27,11 @@ export async function entrar(
     return { erro: "E-mail ou senha incorretos, ou e-mail não confirmado." };
   }
   const proximo = formData.get("proximo");
-  redirect(typeof proximo === "string" && proximo ? proximo : "/painel");
+  redirect(
+    typeof proximo === "string" && ehCaminhoInterno(proximo)
+      ? proximo
+      : "/painel",
+  );
 }
 
 export async function sair(): Promise<void> {

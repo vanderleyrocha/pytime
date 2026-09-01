@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { ehRotaPublica } from "@/lib/rotas";
+import { ehCaminhoInterno, ehRotaPublica } from "@/lib/rotas";
 
 describe("ehRotaPublica", () => {
   it("libera login, cadastro e convite", () => {
@@ -12,5 +12,18 @@ describe("ehRotaPublica", () => {
     expect(ehRotaPublica("/painel")).toBe(false);
     expect(ehRotaPublica("/convites")).toBe(false);
     expect(ehRotaPublica("/loginfalso")).toBe(false);
+  });
+});
+
+describe("ehCaminhoInterno", () => {
+  it("aceita caminhos internos", () => {
+    expect(ehCaminhoInterno("/painel")).toBe(true);
+    expect(ehCaminhoInterno("/convite/abc")).toBe(true);
+  });
+  it("rejeita destinos externos ou disfarçados", () => {
+    expect(ehCaminhoInterno("https://evil.example")).toBe(false);
+    expect(ehCaminhoInterno("//evil.example")).toBe(false);
+    expect(ehCaminhoInterno("/\\evil.example")).toBe(false);
+    expect(ehCaminhoInterno("")).toBe(false);
   });
 });

@@ -5,3 +5,11 @@ export function ehRotaPublica(pathname: string): boolean {
     (p) => pathname === p || pathname.startsWith(p + "/"),
   );
 }
+
+export function ehCaminhoInterno(destino: string): boolean {
+  return (
+    destino.startsWith("/") &&
+    !destino.startsWith("//") &&
+    !destino.startsWith("/\\")
+  );
+}
