@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { criarClienteServidor } from "@/lib/supabase/cliente-servidor";
 import { obterUnidadeAtiva } from "@/lib/unidade-ativa";
+import { haGeracaoEmAndamento } from "@/lib/geracoes";
 import { FormularioGerar } from "./gerar";
 import { AoVivo } from "./ao-vivo";
 import { tentarNovamente } from "./actions";
@@ -26,9 +27,13 @@ export default async function PaginaGeracoes() {
     .order("criada_em", { ascending: false })
     .limit(20);
 
+  const emAndamento = haGeracaoEmAndamento(
+    (geracoes ?? []).map((g) => g.status),
+  );
+
   return (
     <div className="flex flex-col gap-6">
-      <AoVivo unidadeId={perfil.unidade_id} />
+      <AoVivo unidadeId={perfil.unidade_id} emAndamento={emAndamento} />
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Gerações</h1>
         <FormularioGerar />
