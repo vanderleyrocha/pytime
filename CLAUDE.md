@@ -94,6 +94,9 @@ cd app && npm run teste && npm run lint && npm run build   # app Next.js
 #   defina SUPABASE_DB_URL (ver .env.example) e rode:
 python supabase/tests/rodar_testes.py
 
+cd worker && pytest -q && ruff check . && ruff format --check .   # worker (exige SUPABASE_DB_URL)
+python -m pytime_worker.principal                                 # roda o worker localmente
+
 cd engine
 pytest                              # suíte completa (47+ testes)
 pytest --cov=pytime_engine --cov-report=term-missing   # cobertura
