@@ -25,6 +25,7 @@ export function BarraLateral({
       </div>
       <nav className="flex flex-col gap-2 text-sm">
         <Link href="/painel">Painel</Link>
+        <Link href="/turnos">Turnos</Link>
         {ativa.papel === "admin" && <Link href="/convites">Convites</Link>}
         {/* Rotas de cadastros/regras/gerações entram nos planos 2B/2C */}
       </nav>
