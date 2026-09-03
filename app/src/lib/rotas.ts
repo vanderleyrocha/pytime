@@ -1,4 +1,4 @@
-const PREFIXOS_PUBLICOS = ["/login", "/cadastro", "/convite"];
+const PREFIXOS_PUBLICOS = ["/login", "/cadastro", "/convite", "/auth", "/definir-senha"];
 
 export function ehRotaPublica(pathname: string): boolean {
   return PREFIXOS_PUBLICOS.some(

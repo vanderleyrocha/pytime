@@ -13,6 +13,10 @@ describe("ehRotaPublica", () => {
     expect(ehRotaPublica("/convites")).toBe(false);
     expect(ehRotaPublica("/loginfalso")).toBe(false);
   });
+  it("libera o fluxo de auth do convidado", () => {
+    expect(ehRotaPublica("/auth/confirm")).toBe(true);
+    expect(ehRotaPublica("/definir-senha")).toBe(true);
+  });
 });
 
 describe("ehCaminhoInterno", () => {
