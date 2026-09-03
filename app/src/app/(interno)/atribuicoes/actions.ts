@@ -21,12 +21,15 @@ export async function salvarAtribuicao(
   const supabase = await criarClienteServidor();
   let atribuicaoId = id;
   if (id) {
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from("atribuicoes")
       .update(atribuicao)
       .eq("id", id)
-      .eq("unidade_id", perfil.unidade_id);
+      .eq("unidade_id", perfil.unidade_id)
+      .select("id")
+      .maybeSingle();
     if (error) return { erro: mensagemErro(error.code) };
+    if (!data) return { erro: "Atribuição não encontrada." };
   } else {
     const { data, error } = await supabase
       .from("atribuicoes")
@@ -36,6 +39,17 @@ export async function salvarAtribuicao(
     if (error || !data) return { erro: mensagemErro(error?.code) };
     atribuicaoId = data.id;
   }
+
+  // Defesa em profundidade: confirma que a atribuição pertence à unidade
+  // ativa antes de tocar em atribuicao_recursos (RLS já protege, isto é
+  // redundante de propósito).
+  const { data: dona } = await supabase
+    .from("atribuicoes")
+    .select("id")
+    .eq("id", atribuicaoId!)
+    .eq("unidade_id", perfil.unidade_id)
+    .maybeSingle();
+  if (!dona) return { erro: "Atribuição não encontrada." };
 
   const { error: erroLimpar } = await supabase
     .from("atribuicao_recursos")
