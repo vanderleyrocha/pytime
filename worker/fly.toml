@@ -1,0 +1,15 @@
+# Worker de geração do PyTime — processo sempre ligado, sem serviço HTTP.
+# Deploy da RAIZ do repo: fly deploy --config worker/fly.toml --remote-only
+app = "pytime-worker"
+primary_region = "gru"
+
+[build]
+  dockerfile = "worker/Dockerfile"
+
+[processes]
+  worker = "python -m pytime_worker.principal"
+
+[[vm]]
+  size = "shared-cpu-2x"
+  memory = "2gb"
+  processes = ["worker"]
