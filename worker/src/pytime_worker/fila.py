@@ -54,15 +54,22 @@ def gravar_resultado_concluido(
     unidade_id: str,
     resultado: dict[str, Any],
     grade: list[tuple[str, str]],
-) -> str:
-    """Grava geração concluída + cenário + aulas numa única transação."""
+) -> str | None:
+    """Grava geração concluída + cenário + aulas numa única transação.
+
+    Devolve ``None`` (sem gravar cenário/aulas) se o job não é mais deste
+    worker — por exemplo, foi resgatado por `resgatar_geracoes_orfas()`
+    enquanto este worker ainda processava.
+    """
     with conn.transaction():
         with conn.cursor() as cur:
             cur.execute(
                 "update geracoes set status = 'concluida', resultado = %s::jsonb,"
-                " atualizada_em = now() where id = %s",
+                " atualizada_em = now() where id = %s and status = 'executando'",
                 (json.dumps(resultado), geracao_id),
             )
+            if cur.rowcount == 0:
+                return None
             cur.execute(
                 "insert into cenarios (unidade_id, geracao_id)"
                 " values (%s, %s) returning id",
@@ -90,7 +97,8 @@ def gravar_inviavel(
     with conn.cursor() as cur:
         cur.execute(
             "update geracoes set status = 'inviavel', resultado = %s::jsonb,"
-            " nucleo_conflito = %s, atualizada_em = now() where id = %s",
+            " nucleo_conflito = %s, atualizada_em = now()"
+            " where id = %s and status = 'executando'",
             (json.dumps(resultado), nucleo, geracao_id),
         )
 
@@ -99,6 +107,6 @@ def gravar_erro(conn: psycopg.Connection, geracao_id: str, detalhe: str) -> None
     with conn.cursor() as cur:
         cur.execute(
             "update geracoes set status = 'erro', detalhe_erro = %s,"
-            " atualizada_em = now() where id = %s",
+            " atualizada_em = now() where id = %s and status = 'executando'",
             (detalhe, geracao_id),
         )

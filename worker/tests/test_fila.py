@@ -103,3 +103,26 @@ def test_gravar_resultado_concluido_cria_cenario_e_aulas(conexao, unidade_teste)
     assert ger["status"] == "concluida"
     assert ger["resultado"]["status"] == "otimo"
     assert aulas["n"] == 1
+
+
+def test_gravar_resultado_ignora_job_resgatado(conexao, unidade_teste):
+    geracao_id = _enfileirar(conexao, unidade_teste)
+    job = fila.reivindicar(conexao)
+    # simula o resgate de órfã devolvendo o job à fila
+    with conexao.cursor() as cur:
+        cur.execute(
+            "update geracoes set status = 'pendente' where id = %s",
+            (job["id"],),
+        )
+    cenario_id = fila.gravar_resultado_concluido(
+        conexao, job["id"], unidade_teste, resultado={"status": "otimo"}, grade=[]
+    )
+    assert cenario_id is None
+    with conexao.cursor() as cur:
+        cur.execute("select status from geracoes where id = %s", (geracao_id,))
+        assert cur.fetchone()["status"] == "pendente"
+        cur.execute(
+            "select count(*)::int as n from cenarios where geracao_id = %s",
+            (geracao_id,),
+        )
+        assert cur.fetchone()["n"] == 0
