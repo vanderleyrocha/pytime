@@ -1,6 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { z } from "zod";
 import { criarClienteServidor } from "@/lib/supabase/cliente-servidor";
 
 export type EstadoAceite = { erro?: string };
@@ -10,7 +11,7 @@ export async function aceitarConvite(
   formData: FormData,
 ): Promise<EstadoAceite> {
   const token = formData.get("token");
-  if (typeof token !== "string" || !token) {
+  if (typeof token !== "string" || !z.uuid().safeParse(token).success) {
     return { erro: "Convite inválido." };
   }
   const supabase = await criarClienteServidor();

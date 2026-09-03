@@ -11,7 +11,7 @@ export default async function PaginaConvites() {
   if (perfil.papel !== "admin") redirect("/painel");
 
   const supabase = await criarClienteServidor();
-  const { data: convites } = await supabase
+  const { data: convites, error } = await supabase
     .from("convites")
     .select("id, email, papel, token, expira_em, aceito_em")
     .eq("unidade_id", perfil.unidade_id)
@@ -21,6 +21,11 @@ export default async function PaginaConvites() {
     <div className="flex flex-col gap-8">
       <h1 className="text-2xl font-bold">Convites</h1>
       <FormularioConvite />
+      {error && (
+        <p className="text-sm text-red-600">
+          Não foi possível carregar os convites. Recarregue a página.
+        </p>
+      )}
       <table className="w-full text-sm">
         <thead>
           <tr className="border-b text-left">

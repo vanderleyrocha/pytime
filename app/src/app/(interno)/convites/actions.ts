@@ -63,6 +63,8 @@ export async function criarConvite(
 }
 
 export async function revogarConvite(formData: FormData): Promise<void> {
+  const perfil = await obterUnidadeAtiva();
+  if (!perfil || perfil.papel !== "admin") return;
   const id = formData.get("id");
   if (typeof id !== "string") return;
   const supabase = await criarClienteServidor();

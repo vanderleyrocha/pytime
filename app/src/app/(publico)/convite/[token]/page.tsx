@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { z } from "zod";
 import { criarClienteServico } from "@/lib/supabase/cliente-servico";
 import { criarClienteServidor } from "@/lib/supabase/cliente-servidor";
 import { FormularioAceite } from "./formulario";
@@ -9,6 +10,10 @@ export default async function PaginaConvite({
   params: Promise<{ token: string }>;
 }) {
   const { token } = await params;
+
+  if (!z.uuid().safeParse(token).success) {
+    return <Aviso titulo="Convite inválido" texto="Confira o link recebido." />;
+  }
 
   // Leitura via service_role: o convidado ainda não é membro da unidade,
   // então o RLS (convites só para admin) o bloquearia. Somente leitura
