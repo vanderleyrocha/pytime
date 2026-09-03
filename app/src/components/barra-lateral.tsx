@@ -31,8 +31,9 @@ export function BarraLateral({
         <Link href="/professores">Professores</Link>
         <Link href="/recursos">Recursos</Link>
         <Link href="/atribuicoes">Atribuições</Link>
+        <Link href="/regras">Regras</Link>
         {ativa.papel === "admin" && <Link href="/convites">Convites</Link>}
-        {/* Rotas de cadastros/regras/gerações entram nos planos 2B/2C */}
+        {/* Rotas de gerações entram no plano 2C */}
       </nav>
       <form action={sair} className="mt-auto">
         <Button variant="outline" size="sm" type="submit">
