@@ -43,7 +43,7 @@ vercel deploy --prod
 fly auth login
 fly apps create pytime-worker
 fly secrets set --app pytime-worker SUPABASE_DB_URL="postgresql://postgres:<SENHA>@db.jrdnelyzvpvniukqamdm.supabase.co:5432/postgres"
-fly deploy --config worker/fly.toml --remote-only
+fly deploy --remote-only
 ```
 
 - No Fly o host direto funciona por IPv6; se falhar, usar o pooler session
@@ -56,4 +56,4 @@ fly deploy --config worker/fly.toml --remote-only
 1. `git push` (master).
 2. Banco mudou? `npx supabase db push` + rodar os testes de RLS.
 3. App: `cd app && vercel deploy --prod`.
-4. Worker mudou (ou o engine)? `fly deploy --config worker/fly.toml --remote-only`.
+4. Worker mudou (ou o engine)? `fly deploy --remote-only`.

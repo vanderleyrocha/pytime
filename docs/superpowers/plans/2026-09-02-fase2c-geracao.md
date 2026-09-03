@@ -1806,7 +1806,7 @@ git commit -m "feat(app): painel com atalho de geracao e ultima grade"
 **⚠️ CHECKPOINT COM O USUÁRIO:** requer conta no Fly.io, `flyctl` instalado e login (`fly auth login`). A máquina local NÃO tem Docker — o build usa `--remote-only` (builder do Fly).
 
 **Files:**
-- Create: `worker/Dockerfile`, `worker/fly.toml`
+- Create: `worker/Dockerfile`, `fly.toml`
 
 **Interfaces:**
 - Consumes: worker completo (T3–T5); migrations aplicadas (T2).
@@ -1830,7 +1830,7 @@ CMD ["python", "-m", "pytime_worker.principal"]
 
 - [ ] **Step 2: fly.toml**
 
-`worker/fly.toml`:
+`fly.toml`:
 
 ```toml
 # Worker de geração do PyTime — processo sempre ligado, sem serviço HTTP.
@@ -1857,7 +1857,7 @@ Da RAIZ do repo (o contexto do build precisa enxergar `engine/`):
 fly auth login                        # usuário
 fly apps create pytime-worker
 fly secrets set --app pytime-worker SUPABASE_DB_URL="postgresql://postgres:<SENHA>@db.jrdnelyzvpvniukqamdm.supabase.co:5432/postgres"
-fly deploy --config worker/fly.toml --remote-only
+fly deploy --remote-only
 ```
 
 (No Fly o host direto funciona por IPv6; se falhar, usar o pooler session `postgres.jrdnelyzvpvniukqamdm@aws-0-sa-east-1.pooler.supabase.com:5432`.)
@@ -1873,7 +1873,7 @@ Expected: `Worker PyTime iniciado.` e, sem jobs, silêncio (poll de 5 s).
 - [ ] **Step 5: Commit**
 
 ```bash
-git add worker/Dockerfile worker/fly.toml
+git add worker/Dockerfile fly.toml
 git commit -m "feat(worker): Dockerfile e configuracao do Fly.io"
 ```
 
@@ -1937,7 +1937,7 @@ Três peças: Supabase (banco/auth), Vercel (app Next.js), Fly.io (worker).
 - App: `pytime-worker` (região `gru`), 1 máquina sempre ligada, sem HTTP.
 - Secret: `fly secrets set --app pytime-worker SUPABASE_DB_URL=...`
   (host direto `db.<ref>.supabase.co:5432` — IPv6 — ou o pooler session).
-- Deploy (da raiz do repo): `fly deploy --config worker/fly.toml --remote-only`.
+- Deploy (da raiz do repo): `fly deploy --remote-only`.
 - Logs: `fly logs --app pytime-worker` (deve mostrar "Worker PyTime iniciado.").
 
 ## Rotina de atualização
@@ -1945,7 +1945,7 @@ Três peças: Supabase (banco/auth), Vercel (app Next.js), Fly.io (worker).
 1. `git push` (main).
 2. Banco mudou? `npx supabase db push` + rodar os testes de RLS.
 3. App: `cd app && vercel deploy --prod`.
-4. Worker mudou (ou o engine)? `fly deploy --config worker/fly.toml --remote-only`.
+4. Worker mudou (ou o engine)? `fly deploy --remote-only`.
 ```
 
 - [ ] **Step 4: Commit**

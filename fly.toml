@@ -1,5 +1,6 @@
 # Worker de geração do PyTime — processo sempre ligado, sem serviço HTTP.
-# Deploy da RAIZ do repo: fly deploy --config worker/fly.toml --remote-only
+# Fica na raiz do repo: o contexto do build precisa enxergar engine/ e worker/.
+# Deploy (da raiz): fly deploy --remote-only
 app = "pytime-worker"
 primary_region = "gru"
 

@@ -1,5 +1,5 @@
 # Contexto de build = raiz do repositório (precisa enxergar engine/).
-# Ex.: fly deploy --config worker/fly.toml --remote-only  (da raiz)
+# Ex.: fly deploy --remote-only  (da raiz, usa o fly.toml da raiz)
 FROM python:3.12-slim
 
 WORKDIR /srv
