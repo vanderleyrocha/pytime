@@ -40,7 +40,8 @@ export async function salvarRegra(
   if (!parametros.success) {
     return { erro: parametros.error.issues[0].message };
   }
-  const { tipo: _descartado, ...paramsSalvos } = parametros.data;
+  const { tipo: tipoValidado, ...paramsSalvos } = parametros.data;
+  void tipoValidado;
 
   // hard/soft: os tipos fixos ignoram o formulário; só 'alternavel' escolhe.
   const hard = meta.modo === "alternavel" ? base.data.hard : hardPadrao(tipo);
