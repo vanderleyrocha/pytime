@@ -11,7 +11,8 @@ export default async function PaginaTurmas() {
   const [{ data: turmas }, { data: turnos }] = await Promise.all([
     supabase
       .from("turmas")
-      .select("id, nome, turno_id, turnos(nome)")
+      // hint da FK simples: a FK composta de tenant torna o embed ambíguo
+      .select("id, nome, turno_id, turnos!turmas_turno_id_fkey(nome)")
       .eq("unidade_id", perfil.unidade_id)
       .order("nome"),
     supabase

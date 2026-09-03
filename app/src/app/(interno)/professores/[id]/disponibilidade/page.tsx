@@ -24,7 +24,8 @@ export default async function PaginaDisponibilidade({
   const [{ data: slots }, { data: marcadas }] = await Promise.all([
     supabase
       .from("slots")
-      .select("id, dia, ordem, turnos(nome)")
+      // hint da FK simples: a FK composta de tenant torna o embed ambíguo
+      .select("id, dia, ordem, turnos!slots_turno_id_fkey(nome)")
       .eq("unidade_id", perfil.unidade_id),
     supabase
       .from("disponibilidades")
