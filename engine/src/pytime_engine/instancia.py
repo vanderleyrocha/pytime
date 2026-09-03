@@ -74,7 +74,7 @@ class Instancia(BaseModel):
     atribuicoes: list[Atribuicao]
     recursos: list[Recurso] = Field(default_factory=list)
     regras: list[RegraConfig] = Field(default_factory=list)
-    budget_segundos: float = Field(default=60.0, gt=0, le=240)
+    budget_segundos: float = Field(default=60.0, gt=0, le=600)
 
     def slots_do_turno(self, turno_id: str) -> list[Slot]:
         return sorted(

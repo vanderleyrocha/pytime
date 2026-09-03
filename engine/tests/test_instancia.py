@@ -50,10 +50,12 @@ def test_defaults():
     assert inst.professores[0].disponibilidade == {}
 
 
-def test_budget_maximo_240():
+def test_budget_maximo_600():
     inst = instancia_2slots()
+    aceita = Instancia(**{**inst.model_dump(), "budget_segundos": 600})
+    assert aceita.budget_segundos == 600
     with pytest.raises(ValidationError):
-        Instancia(**{**inst.model_dump(), "budget_segundos": 300})
+        Instancia(**{**inst.model_dump(), "budget_segundos": 601})
 
 
 def test_slots_do_turno_ordenados():

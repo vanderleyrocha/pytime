@@ -69,7 +69,7 @@ carregam `unidade_id`.
   disponivel/indisponivel/prefere/evita), `recursos`.
 - **Atribuição**: `atribuicoes` (professor × disciplina × turma,
   carga_semanal ≥ 1, geminadas), `atribuicao_recursos` (N:N).
-- **Regras**: `regras` (tipo — um dos 9 tipos do catálogo do motor,
+- **Regras**: `regras` (tipo — um dos 10 tipos do catálogo do motor,
   parametros JSONB, hard, peso, ativa).
 - **Geração**: `geracoes` (status `pendente → executando → concluida` |
   `inviavel` | `erro`; instancia JSONB, resultado JSONB, progresso JSONB,
@@ -112,7 +112,7 @@ pt-BR, shadcn/ui + Tailwind, sidebar. Rotas (escopadas à unidade ativa):
 | `/turmas`, `/disciplinas`, `/recursos` | CRUDs tabela + dialog |
 | `/professores` | CRUD + grade de disponibilidade (matriz slot × dia; célula cicla disponível → indisponível → prefere → evita, pintável com o mouse) |
 | `/atribuicoes` | tabela com carga/geminadas, filtros, aviso permanente de matriz incompleta por turma |
-| `/regras` | editor: lista + catálogo das 9 regras, mini-formulário por tipo (sem JSON cru), toggle hard/soft onde o motor permite, peso, ativa |
+| `/regras` | editor: lista + catálogo das 10 regras, mini-formulário por tipo (sem JSON cru), toggle hard/soft onde o motor permite, peso, ativa |
 | `/geracoes` | lista + "Gerar horário" (budget 60 s padrão, máx. 600 s); progresso ao vivo via Realtime; inviável → núcleo de conflito em texto direto (tradução por IA é Fase 4) |
 
 Ajuste no motor exigido por esta fase (única mudança em `engine/`): o teto de
