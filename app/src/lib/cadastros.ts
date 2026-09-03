@@ -51,14 +51,20 @@ export async function salvarRegistro(
 
   const supabase = await criarClienteServidor();
   const linha = { ...(dados.data as object), unidade_id: perfil.unidade_id };
-  const { error } = id
-    ? await supabase
-        .from(tabela)
-        .update(linha)
-        .eq("id", id)
-        .eq("unidade_id", perfil.unidade_id)
-    : await supabase.from(tabela).insert(linha);
-  if (error) return { erro: "Não foi possível salvar. Tente novamente." };
+  if (id) {
+    const { data, error } = await supabase
+      .from(tabela)
+      .update(linha)
+      .eq("id", id)
+      .eq("unidade_id", perfil.unidade_id)
+      .select("id")
+      .maybeSingle();
+    if (error) return { erro: "Não foi possível salvar. Tente novamente." };
+    if (!data) return { erro: "Registro não encontrado." };
+  } else {
+    const { error } = await supabase.from(tabela).insert(linha);
+    if (error) return { erro: "Não foi possível salvar. Tente novamente." };
+  }
   revalidatePath(`/${tabela}`);
   return { sucesso: true };
 }

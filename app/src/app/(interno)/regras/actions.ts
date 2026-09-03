@@ -46,6 +46,26 @@ export async function salvarRegra(
   // hard/soft: os tipos fixos ignoram o formulário; só 'alternavel' escolhe.
   const hard = meta.modo === "alternavel" ? base.data.hard : hardPadrao(tipo);
 
+  const supabase = await criarClienteServidor();
+
+  // As disciplinas referenciadas nos parâmetros precisam pertencer à
+  // unidade ativa (RLS já protege, isto é defesa em profundidade).
+  const idsDisciplinas = [
+    (paramsSalvos as Record<string, unknown>).disciplina_id,
+    (paramsSalvos as Record<string, unknown>).disciplina_a,
+    (paramsSalvos as Record<string, unknown>).disciplina_b,
+  ].filter((v): v is string => typeof v === "string");
+  if (idsDisciplinas.length > 0) {
+    const { data: encontradas } = await supabase
+      .from("disciplinas")
+      .select("id")
+      .eq("unidade_id", perfil.unidade_id)
+      .in("id", idsDisciplinas);
+    if ((encontradas ?? []).length !== new Set(idsDisciplinas).size) {
+      return { erro: "Disciplina não encontrada nesta unidade." };
+    }
+  }
+
   const linha = {
     unidade_id: perfil.unidade_id,
     tipo,
@@ -54,15 +74,20 @@ export async function salvarRegra(
     ativa: base.data.ativa,
     parametros: paramsSalvos,
   };
-  const supabase = await criarClienteServidor();
-  const { error } = id
-    ? await supabase
-        .from("regras")
-        .update(linha)
-        .eq("id", id)
-        .eq("unidade_id", perfil.unidade_id)
-    : await supabase.from("regras").insert(linha);
-  if (error) return { erro: "Não foi possível salvar a regra." };
+  if (id) {
+    const { data, error } = await supabase
+      .from("regras")
+      .update(linha)
+      .eq("id", id)
+      .eq("unidade_id", perfil.unidade_id)
+      .select("id")
+      .maybeSingle();
+    if (error) return { erro: "Não foi possível salvar a regra." };
+    if (!data) return { erro: "Regra não encontrada." };
+  } else {
+    const { error } = await supabase.from("regras").insert(linha);
+    if (error) return { erro: "Não foi possível salvar a regra." };
+  }
   revalidatePath("/regras");
   return { sucesso: true };
 }
@@ -92,12 +117,15 @@ export async function alternarAtiva(
     return { erro: "Apenas gestores editam regras." };
   }
   const supabase = await criarClienteServidor();
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from("regras")
     .update({ ativa })
     .eq("id", id)
-    .eq("unidade_id", perfil.unidade_id);
+    .eq("unidade_id", perfil.unidade_id)
+    .select("id")
+    .maybeSingle();
   if (error) return { erro: "Não foi possível alterar." };
+  if (!data) return { erro: "Regra não encontrada." };
   revalidatePath("/regras");
   return { sucesso: true };
 }
