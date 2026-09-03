@@ -28,6 +28,7 @@ export function BarraLateral({
         <Link href="/turnos">Turnos</Link>
         <Link href="/turmas">Turmas</Link>
         <Link href="/disciplinas">Disciplinas</Link>
+        <Link href="/professores">Professores</Link>
         <Link href="/recursos">Recursos</Link>
         {ativa.papel === "admin" && <Link href="/convites">Convites</Link>}
         {/* Rotas de cadastros/regras/gerações entram nos planos 2B/2C */}
