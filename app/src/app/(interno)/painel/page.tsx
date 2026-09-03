@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { criarClienteServidor } from "@/lib/supabase/cliente-servidor";
 import { obterUnidadeAtiva } from "@/lib/unidade-ativa";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -19,13 +20,15 @@ export default async function PaginaPainel() {
     contar("professores"),
     contar("disciplinas"),
   ]);
+  // hint da FK simples: a FK composta de tenant torna o embed ambíguo
   const { data: ultima } = await supabase
     .from("geracoes")
-    .select("status, criada_em")
+    .select("id, status, criada_em, cenarios!cenarios_geracao_id_fkey(id)")
     .eq("unidade_id", perfil.unidade_id)
     .order("criada_em", { ascending: false })
     .limit(1)
     .maybeSingle();
+  const cenarioUltima = (ultima?.cenarios as { id: string }[] | null)?.[0];
 
   const cartoes = [
     { titulo: "Turmas", valor: turmas },
@@ -50,10 +53,20 @@ export default async function PaginaPainel() {
         <CardHeader>
           <CardTitle className="text-sm">Última geração</CardTitle>
         </CardHeader>
-        <CardContent className="text-sm text-muted-foreground">
-          {ultima
-            ? `${ultima.status} em ${new Date(ultima.criada_em).toLocaleString("pt-BR")}`
-            : "Nenhuma geração ainda. Cadastros e geração chegam nas próximas fases."}
+        <CardContent className="flex items-center gap-4 text-sm">
+          <span className="text-muted-foreground">
+            {ultima
+              ? `${ultima.status} em ${new Date(ultima.criada_em).toLocaleString("pt-BR")}`
+              : "Nenhuma geração ainda."}
+          </span>
+          {ultima?.status === "concluida" && cenarioUltima && (
+            <Link className="underline" href={`/grade/${cenarioUltima.id}`}>
+              Ver grade
+            </Link>
+          )}
+          <Link className="underline" href="/geracoes">
+            Gerar horário
+          </Link>
         </CardContent>
       </Card>
     </div>
