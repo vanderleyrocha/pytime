@@ -6,15 +6,19 @@ SaaS de geração automática de horários escolares (educação básica brasile
 `Instancia` JSON e devolve um `Resultado` JSON.
 
 Specs vinculantes em `docs/superpowers/specs/` (design master + spec por fase).
-Fase 1 (motor) concluída; Fase 2 (app Next.js + Supabase + worker Fly.io) é a
+Fases 1 (motor) e 2 (app Next.js + Supabase + worker Fly.io) concluídas;
+Fase 3 (pós-geração: ajustes manuais, cenário oficial, exportações) é a
 próxima.
 
 ## Stack
 
 - **Motor** (`engine/`): Python 3.12, `ortools>=9.10` (CP-SAT), `pydantic>=2.7`,
   `pytest`. Instalação: `cd engine && pip install -e ".[dev]"`.
-- **Fases futuras**: Next.js App Router + shadcn/ui (app), Supabase
-  (Postgres/RLS/Auth/Realtime), worker Python no Fly.io.
+- **App** (`app/`): Next.js App Router + shadcn/ui na Vercel; Supabase
+  (Postgres/RLS/Auth/Realtime).
+- **Worker** (`worker/`): pacote Python separado no Fly.io; consome a fila
+  `geracoes` e roda o motor. Pode importar `pytime_engine` e `psycopg`.
+  Deploy e envs em `docs/deploy.md`.
 - Identificadores, mensagens, docstrings e commits **em português**.
 
 ## Regras arquiteturais invioláveis do motor

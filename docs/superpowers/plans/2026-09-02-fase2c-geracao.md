@@ -10,7 +10,7 @@
 
 **Spec:** `docs/superpowers/specs/2026-08-31-fase2-app-design.md` (§1 execução/fila, §2 fluxo e garantias do job, §5 rotas /geracoes e /grade + ajuste do motor, §6 testes, §7 deploy). Contexto: `docs/superpowers/specs/2026-08-30-pytime-design.md`.
 
-**Backlog herdado incluído:** correção do spec "9 tipos" → 10 (Task 1). **Fora de escopo (backlog Fase 3):** RPCs transacionais para `salvarGrade`/`salvarDisponibilidades`; `(select tenho_papel(...))` nas policies; exibir erros de selects hoje descartados; `ORDENS` derivado da grade; agrupar matriz por id de turno; bounds no `esquemaGrade`; parâmetros de regra órfãos após excluir disciplina; confirmação no excluir.
+**Backlog herdado incluído:** correção do spec "9 tipos" → 10 (Task 1). **Fora de escopo (backlog Fase 3):** RPCs transacionais para `salvarGrade`/`salvarDisponibilidades`; `(select tenho_papel(...))` nas policies; exibir erros de selects hoje descartados; `ORDENS` derivado da grade; agrupar matriz por id de turno; bounds no `esquemaGrade`; parâmetros de regra órfãos após excluir disciplina; confirmação no excluir; **núcleo de conflito legível** (a página de gerações mostra `disponibilidade:<uuid>`; traduzir identificador para nome do professor/turma/disciplina).
 
 ## Global Constraints
 
