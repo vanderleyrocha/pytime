@@ -98,7 +98,11 @@ cd app && npm run teste && npm run lint && npm run build   # app Next.js
 #   defina SUPABASE_DB_URL (ver .env.example) e rode:
 python supabase/tests/rodar_testes.py
 
-cd worker && pytest -q && ruff check . && ruff format --check .   # worker (exige SUPABASE_DB_URL)
+# worker: exige SUPABASE_DB_URL e NENHUM worker rodando contra o mesmo banco
+#   (os testes reivindicam a geração pendente mais antiga; o worker do Fly
+#    rouba o job e a suíte falha com job=None). Pare antes:
+#      fly machine stop <id> --app pytime-worker
+cd worker && pytest -q && ruff check . && ruff format --check .
 python -m pytime_worker.principal                                 # roda o worker localmente
 
 cd engine

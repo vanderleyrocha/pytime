@@ -48,6 +48,9 @@ fly deploy --remote-only
 
 - No Fly o host direto funciona por IPv6; se falhar, usar o pooler session
   `postgres.jrdnelyzvpvniukqamdm@aws-0-sa-east-1.pooler.supabase.com:5432`.
+- Rodar a suíte do worker exige parar a máquina antes (`fly machine stop <id>
+  --app pytime-worker`): os testes reivindicam a geração pendente mais antiga
+  e o worker ao vivo rouba o job. Religue com `fly machine start <id>`.
 - Logs: `fly logs --app pytime-worker` (deve mostrar "Worker PyTime iniciado."
   e, sem jobs, silêncio — poll de 5 s).
 
