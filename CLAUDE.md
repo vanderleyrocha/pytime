@@ -113,6 +113,10 @@ mypy src                            # checagem de tipos
 python bench/benchmark.py           # benchmark 20/40/80 turmas (demorado)
 ```
 
+CI (`.github/workflows/ci.yml`) roda motor, app e worker em todo push na
+`master` e em todo PR. Testes de banco (worker + RLS) só rodam se o secret
+`SUPABASE_DB_URL_STAGING` existir — nunca aponte para o banco de produção.
+
 Pre-commit está configurado (`pre-commit install` uma vez): ruff + mypy a
 cada commit; a suíte pytest completa roda no `pre-push`.
 
