@@ -28,8 +28,9 @@ class Avaliacao(BaseModel):
     """Veredito de uma grade pronta (ex. editada à mão) contra o catálogo.
 
     `violacoes_hard` usa o mesmo formato de `Resultado.nucleo_conflito`
-    (ex. `disponibilidade:<professor_id>`), mais `estrutural:<tipo>:<id>`
-    para as restrições básicas do modelo.
+    (ex. `disponibilidade:<professor_id>`), mais `estrutural:<tipo>:<id>[:<slot_id>]`
+    para as restrições básicas do modelo e `instancia:<frase>` para erros da
+    própria instância (não da grade).
     """
 
     violacoes_hard: list[str] = Field(default_factory=list)

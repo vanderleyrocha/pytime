@@ -180,6 +180,11 @@ escrita duas vezes. A fonte de verdade é única: a classe `Regra` em `regras/`.
 - **Meta de latência:** p95 ≤ 1 s para 80 turmas (montagem + propagação),
   medida no benchmark. Se não for atingida, o app aplica o movimento de forma
   otimista e mostra o veredito quando chegar — sem regras em TS.
+  *Medição (17/10/2026, `bench/benchmark_avaliar.py`, 4 vCPU, 10 repetições):*
+  20 turmas mediana 0,65 s / p95 1,23 s; 40 turmas 0,96 s / 2,51 s; 80 turmas
+  1,75 s / 2,02 s — **meta não atingida**. O tempo está quase todo na
+  montagem do modelo (`_montar`: laços O(turmas × aulas) em `modelo.py`), não
+  no solve. Até otimizar, vale o fallback otimista acima.
 - **Persistência:** a Server Action revalida no servidor antes de gravar
   `aulas_alocadas` (nunca confia no veredito vindo do cliente); "forçar" grava
   mesmo com `violacoes_hard`, registrando-as no cenário.
