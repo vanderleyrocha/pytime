@@ -138,10 +138,51 @@ banco, cria registro em `geracoes`, invoca a Function Python → motor grava
 progresso no job → UI acompanha via Supabase Realtime → resultado vira `cenario`
 para revisão. Inviável: núcleo de conflito fica no job.
 
-**Edição manual (Fase 3):** mover aula na grade chama validador incremental em
-TypeScript no servidor (mesmas regras do catálogo): responde em milissegundos se
-viola hard e o impacto nas softs. Persiste só se não violar hard; opção "forçar"
-registrada como exceção consciente.
+**Edição manual (Fase 3):** mover aula na grade chama o **validador do próprio
+motor** (`pytime_engine`), nunca uma reimplementação das regras em TypeScript.
+Responde se a grade editada viola hard e o impacto nas softs. Persiste só se não
+violar hard; opção "forçar" registrada como exceção consciente.
+
+*Decisão (revisada em 17/10/2026; substitui o "validador incremental em
+TypeScript" da versão original):* duplicar as 10 regras do catálogo em duas
+linguagens garantiria divergência — o app aceitaria uma edição que o motor
+rejeita, ou o contrário — e toda regra nova (skill `nova-regra`) teria de ser
+escrita duas vezes. A fonte de verdade é única: a classe `Regra` em `regras/`.
+
+- **Contrato no motor:** nova função pública `avaliar(instancia, grade) ->
+  Avaliacao` em módulo próprio (`avaliador.py`, SRP), sem tocar `solver.py` nem
+  as regras. `grade` é a lista de `AulaAlocada` (mesmo formato de
+  `Resultado.grade`). `Avaliacao` traz `violacoes_hard` (lista de motivos no
+  mesmo formato do `nucleo_conflito`, ex. `disponibilidade:<professor_id>`),
+  `custos` / `custo_total` (mesmo formato de `Resultado`) e `tempo_segundos`.
+- **Como avalia:** monta o `ContextoModelo` com as regras ativas exatamente como
+  o solver (mesmo `REGISTRO`), fixa cada `x[aula, slot]` conforme a grade e
+  resolve com os literais das hard em `add_assumptions`. Com todas as variáveis
+  de decisão fixadas o CP-SAT só propaga, então o custo é dominado pela
+  montagem do modelo. Inviável → `SufficientAssumptionsForInfeasibility` dá as
+  regras violadas; viável → custos por soft extraídos como no solver.
+- **Restrições estruturais** (professor em dois lugares, turma com slot vazio ou
+  duplo, carga diferente da atribuição, aula fora do turno da turma) não têm
+  literal de assumption; o avaliador as checa antes, em Python puro, e as
+  reporta como `estrutural:<tipo>:<id>`. As aulas de uma mesma atribuição são
+  mapeadas aos índices em ordem de slot para respeitar a quebra de simetria do
+  modelo.
+- **Onde roda:** no worker do Fly.io (já tem o motor, fica em `gru`, perto do
+  banco), num segundo processo do mesmo app (`[processes] validador`) com
+  endpoint HTTP mínimo `POST /avaliar`. Acesso só pelo servidor Next.js
+  (Server Action), autenticado por segredo compartilhado
+  (`VALIDADOR_TOKEN`); o navegador nunca chama o validador. O app monta a
+  `Instancia` com o mesmo código da geração (`lib/instancia.ts`) e envia a
+  grade editada.
+- **Meta de latência:** p95 ≤ 1 s para 80 turmas (montagem + propagação),
+  medida no benchmark. Se não for atingida, o app aplica o movimento de forma
+  otimista e mostra o veredito quando chegar — sem regras em TS.
+- **Persistência:** a Server Action revalida no servidor antes de gravar
+  `aulas_alocadas` (nunca confia no veredito vindo do cliente); "forçar" grava
+  mesmo com `violacoes_hard`, registrando-as no cenário.
+- **Benefício colateral:** o mesmo `avaliar` serve para reavaliar um cenário
+  depois que regras ou disponibilidades mudam, e para comparar cenários (Fase 3)
+  com custos calculados de forma idêntica.
 
 **Cenários (Fase 3):** múltiplas versões salvas, comparação lado a lado, uma
 marcada oficial. Exportação PDF/Excel: grade por turma, por professor e geral.
