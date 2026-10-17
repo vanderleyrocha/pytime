@@ -141,15 +141,13 @@ def _trocar_aula(grade: list[AulaAlocada], aula: AulaAlocada, slot_id: str) -> N
 def test_carga_diferente_e_estrutural():
     inst = instancia_minima()
     grade = _grade_sem_regras(inst)
-    grade = [a for a in grade if a.slot_id != "manha-d0-h0"]
+    removida = next(a for a in grade if a.slot_id == "manha-d0-h0")
+    grade = [a for a in grade if a is not removida]
 
     av = avaliar(inst, grade)
 
-    atrib_removida = next(
-        a.atribuicao_id for a in _grade_sem_regras(inst) if a.slot_id == "manha-d0-h0"
-    )
-    assert f"estrutural:carga:{atrib_removida}" in av.violacoes_hard
-    assert "estrutural:turma_vazio:t1" in av.violacoes_hard
+    assert f"estrutural:carga:{removida.atribuicao_id}" in av.violacoes_hard
+    assert "estrutural:turma_vazio:t1:manha-d0-h0" in av.violacoes_hard
     assert av.custos == []
 
 
@@ -157,23 +155,28 @@ def test_turma_com_duas_aulas_no_mesmo_slot_e_estrutural():
     inst = instancia_minima()
     grade = _grade_sem_regras(inst)
     outra = next(a for a in grade if a.slot_id != "manha-d0-h0")
+    vago = outra.slot_id
     outra.slot_id = "manha-d0-h0"
 
     av = avaliar(inst, grade)
 
-    assert "estrutural:turma_duplo:t1" in av.violacoes_hard
-    assert "estrutural:turma_vazio:t1" in av.violacoes_hard
+    assert "estrutural:turma_duplo:t1:manha-d0-h0" in av.violacoes_hard
+    assert f"estrutural:turma_vazio:t1:{vago}" in av.violacoes_hard
 
 
 def test_aula_fora_do_turno_e_atribuicao_desconhecida_sao_estruturais():
     inst = instancia_minima()
     grade = _grade_sem_regras(inst)
-    grade[0].slot_id = "slot-inexistente"
+    fora = grade[0]
+    fora.slot_id = "slot-inexistente"
     grade.append(AulaAlocada(atribuicao_id="a-fantasma", slot_id="manha-d0-h0"))
 
     av = avaliar(inst, grade)
 
-    assert f"estrutural:fora_do_turno:{grade[0].atribuicao_id}" in av.violacoes_hard
+    assert (
+        f"estrutural:fora_do_turno:{fora.atribuicao_id}:slot-inexistente"
+        in av.violacoes_hard
+    )
     assert "estrutural:atribuicao_desconhecida:a-fantasma" in av.violacoes_hard
 
 
@@ -233,6 +236,64 @@ def test_professor_em_duas_turmas_no_mesmo_slot_e_estrutural():
     av = avaliar(inst, grade)
 
     assert av.violacoes_hard == [
-        "estrutural:professor_duplo:p1",
-        "estrutural:professor_duplo:p2",
+        f"estrutural:professor_duplo:p1:{s0}",
+        f"estrutural:professor_duplo:p2:{s1}",
     ]
+
+
+def _grade_por_dia(dias: list[list[str]]) -> list[AulaAlocada]:
+    """Grade da turma única de `instancia_minima` a partir das disciplinas por dia."""
+    return [
+        AulaAlocada(atribuicao_id=f"a-{disc}", slot_id=f"manha-d{d}-h{h}")
+        for d, aulas in enumerate(dias)
+        for h, disc in enumerate(aulas)
+    ]
+
+
+#: dia 0 com janela para prof-mat e prof-por; história toda na sexta
+GRADE_COM_JANELAS = _grade_por_dia(
+    [["mat", "por", "mat", "por"]] + [["mat", "mat", "por", "por"]] * 3 + [["his"] * 4]
+)
+
+
+def test_custo_de_janelas_e_o_minimo_nao_a_folga():
+    inst = instancia_minima(
+        regras=[RegraConfig(id="r-jan", tipo="janelas_professor", hard=False)]
+    )
+    av = avaliar(inst, GRADE_COM_JANELAS)
+    assert av.violacoes_hard == []
+    assert av.custo_total == 2  # uma janela de prof-mat e uma de prof-por
+
+
+def test_custo_de_distribuicao_e_o_minimo_nao_a_folga():
+    inst = instancia_minima(
+        regras=[
+            RegraConfig(
+                id="r-dist",
+                tipo="distribuicao_disciplina",
+                hard=False,
+                parametros={"max_por_dia": 2},
+            )
+        ]
+    )
+    av = avaliar(inst, GRADE_COM_JANELAS)
+    # história: 4 aulas na sexta (excesso 2) e 1 dia usado de 2 (falta 1)
+    assert av.custo_total == 3
+
+
+def test_geminadas_hard_satisfeita_e_violada():
+    regras = [RegraConfig(id="r-gem", tipo="geminadas", hard=True)]
+    inst = instancia_minima(regras=regras, geminadas={"mat": 1})
+
+    assert avaliar(inst, GRADE_COM_JANELAS).violacoes_hard == []
+
+    sem_par = _grade_por_dia([["mat", "por", "mat", "por"]] * 4 + [["his"] * 4])
+    assert avaliar(inst, sem_par).violacoes_hard == ["geminadas:a-mat"]
+
+
+def test_erro_da_instancia_vem_prefixado():
+    inst = instancia_minima()
+    inst.atribuicoes[0].carga_semanal = 7  # matriz furada
+    av = avaliar(inst, GRADE_COM_JANELAS)
+    assert av.violacoes_hard
+    assert all(v.startswith("instancia:") for v in av.violacoes_hard)
