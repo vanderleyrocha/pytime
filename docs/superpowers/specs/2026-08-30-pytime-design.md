@@ -157,10 +157,13 @@ escrita duas vezes. A fonte de verdade é única: a classe `Regra` em `regras/`.
   `custos` / `custo_total` (mesmo formato de `Resultado`) e `tempo_segundos`.
 - **Como avalia:** monta o `ContextoModelo` com as regras ativas exatamente como
   o solver (mesmo `REGISTRO`), fixa cada `x[aula, slot]` conforme a grade e
-  resolve com os literais das hard em `add_assumptions`. Com todas as variáveis
-  de decisão fixadas o CP-SAT só propaga, então o custo é dominado pela
-  montagem do modelo. Inviável → `SufficientAssumptionsForInfeasibility` dá as
-  regras violadas; viável → custos por soft extraídos como no solver.
+  deixa os literais das hard **livres**, minimizando custo soft + nº de
+  literais desligados. Com a grade fixada, só o literal de uma regra violada é
+  forçado a 0, então a resposta lista **todas** as hard violadas (um núcleo via
+  `SufficientAssumptionsForInfeasibility` daria só um subconjunto suficiente)
+  e, no mesmo solve, os custos por soft extraídos como no solver. Com todas as
+  variáveis de decisão fixadas o CP-SAT só propaga; o custo é dominado pela
+  montagem do modelo.
 - **Restrições estruturais** (professor em dois lugares, turma com slot vazio ou
   duplo, carga diferente da atribuição, aula fora do turno da turma) não têm
   literal de assumption; o avaliador as checa antes, em Python puro, e as
