@@ -22,3 +22,17 @@ class Resultado(BaseModel):
     custo_total: int = 0
     tempo_segundos: float
     nucleo_conflito: list[str] = Field(default_factory=list)
+
+
+class Avaliacao(BaseModel):
+    """Veredito de uma grade pronta (ex. editada à mão) contra o catálogo.
+
+    `violacoes_hard` usa o mesmo formato de `Resultado.nucleo_conflito`
+    (ex. `disponibilidade:<professor_id>`), mais `estrutural:<tipo>:<id>`
+    para as restrições básicas do modelo.
+    """
+
+    violacoes_hard: list[str] = Field(default_factory=list)
+    custos: list[CustoRegra] = Field(default_factory=list)
+    custo_total: int = 0
+    tempo_segundos: float
