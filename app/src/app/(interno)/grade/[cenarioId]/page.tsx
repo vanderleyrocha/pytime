@@ -175,9 +175,24 @@ export default async function PaginaGrade({
     <div className="flex flex-col gap-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Grade gerada</h1>
-        <Link className="text-sm underline" href="/geracoes">
-          Voltar às gerações
-        </Link>
+        <div className="flex gap-4 text-sm">
+          <span>
+            Exportar para o escolajba:{" "}
+            <a className="underline" href={`/grade/${cenarioId}/quadro-horarios`}>
+              JSON
+            </a>{" "}
+            ·{" "}
+            <a
+              className="underline"
+              href={`/grade/${cenarioId}/quadro-horarios?formato=csv`}
+            >
+              CSV
+            </a>
+          </span>
+          <Link className="underline" href="/geracoes">
+            Voltar às gerações
+          </Link>
+        </div>
       </div>
       <nav className="flex gap-4 text-sm">
         {abas.map((a) => (
