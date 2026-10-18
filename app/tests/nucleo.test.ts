@@ -40,6 +40,14 @@ const instancia: InstanciaMotor = {
       ativa: true,
       parametros: { disciplina_id: "d2" },
     },
+    {
+      id: "g3",
+      tipo: "disciplina_sincronizada",
+      hard: true,
+      peso: 1,
+      ativa: true,
+      parametros: { disciplina_id: "d2" },
+    },
   ],
   budget_segundos: 60,
 };
@@ -73,6 +81,19 @@ describe("traduzirNucleo", () => {
     expect(mesmoDia).toContain("Educação Física");
     expect(ultimo).toContain("Não no último horário");
     expect(ultimo).toContain("Educação Física");
+  });
+
+  it("traduz aulas juntas pela turma e sincronizada pela disciplina", () => {
+    const [juntas, sinc] = traduzirNucleo(
+      ["aulas_juntas:t1", "disciplina_sincronizada:g3"],
+      instancia,
+    );
+    expect(juntas).toContain("Aulas do mesmo dia juntas");
+    expect(juntas).toContain("6º A");
+    expect(juntas).not.toContain("t1");
+    expect(sinc).toContain("Disciplina no mesmo horário em todas as turmas");
+    expect(sinc).toContain("Educação Física");
+    expect(sinc).not.toContain("g3");
   });
 
   it("remove o prefixo técnico do conflito estrutural", () => {

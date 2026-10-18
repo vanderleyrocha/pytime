@@ -44,7 +44,10 @@ export default async function PaginaRegras() {
       case "distribuicao_disciplina":
         return `máx. ${p.max_por_dia}/dia`;
       case "ultimo_horario":
+      case "disciplina_sincronizada":
         return nomeDisciplina[p.disciplina_id as string] ?? "";
+      case "aulas_juntas":
+        return "todas as disciplinas";
       case "preferencia_disciplina":
         return `${nomeDisciplina[p.disciplina_id as string] ?? ""} ${p.modo} ${(
           p.ordens as number[]
