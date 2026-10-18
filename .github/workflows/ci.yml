@@ -73,9 +73,45 @@ jobs:
       - run: pip install ./engine -e "./worker[dev]"
       - working-directory: worker
         run: ruff check . && ruff format --check .
+      # o staging recebe as migrations do branch antes dos testes de banco
+      # (só aplica as que ainda não estão no histórico do banco)
+      - name: Migrations no staging
+        if: env.SUPABASE_DB_URL != ''
+        run: npx --yes supabase@latest db push --db-url "$SUPABASE_DB_URL" --yes
       # sem o secret, os testes de banco são pulados (skip) pelo conftest
       - working-directory: worker
         run: python -m pytest -q
       - name: Testes de RLS (pgTAP)
         if: env.SUPABASE_DB_URL != ''
         run: python supabase/tests/rodar_testes.py
+
+  staging-chaves:
+    name: Staging (chaves da API)
+    runs-on: ubuntu-latest
+    env:
+      URL: ${{ secrets.SUPABASE_URL_STAGING }}
+      ANON: ${{ secrets.SUPABASE_ANON_KEY_STAGING }}
+      SERVICE: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY_STAGING }}
+    steps:
+      # confere os secrets do E2E sem expor valores: a chave pública precisa
+      # ser aceita pela API REST e a de serviço precisa listar usuários do Auth
+      - name: Conferir chaves do staging
+        if: env.URL != ''
+        run: |
+          set -e
+          case "$URL" in https://*.supabase.co) ;; *) echo "URL do staging fora do formato https://<ref>.supabase.co"; exit 1 ;; esac
+          # chaves novas (sb_publishable_/sb_secret_) vão só no apikey; as
+          # antigas (JWT) também no Authorization: tenta os dois formatos
+          status() {
+            c=$(curl -s -o /dev/null -w '%{http_code}' "$1" -H "apikey: $2")
+            if [ "$c" != 200 ]; then
+              c=$(curl -s -o /dev/null -w '%{http_code}' "$1" -H "apikey: $2" -H "Authorization: Bearer $2")
+            fi
+            echo "$c"
+          }
+          publica=$(status "$URL/rest/v1/turnos?select=id&limit=1" "$ANON")
+          echo "chave pública na API REST: HTTP $publica"; test "$publica" = 200
+          servico=$(status "$URL/auth/v1/admin/users?per_page=1" "$SERVICE")
+          echo "chave de serviço no admin do Auth: HTTP $servico"; test "$servico" = 200
+          recusa=$(status "$URL/auth/v1/admin/users?per_page=1" "$ANON")
+          echo "chave pública no admin do Auth (deve recusar): HTTP $recusa"; test "$recusa" != 200
