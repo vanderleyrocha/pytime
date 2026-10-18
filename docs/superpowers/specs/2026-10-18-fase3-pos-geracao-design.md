@@ -165,8 +165,11 @@ nesta fase.
 
 ## 7. Subfase 3C — Portal do professor e notificações
 
-- **Vínculo**: `perfis.professor_id` (já existe, nullable) liga um usuário com
-  papel `professor` a uma linha de `professores`. Convite de professor reusa o
+- **Vínculo**: migration nova adiciona `perfis.professor_id` (nullable, FK
+  composta de tenant para `professores`; a spec da Fase 2 previa a coluna, mas
+  ela não foi criada) e amplia `convites.papel` para aceitar `professor`
+  (hoje o check só permite `admin`/`coordenador`), com `convites.professor_id`.
+  O papel `professor` já existe no enum `papel`. Convite de professor reusa o
   fluxo de convites, escolhendo o professor na criação.
 - **Portal**: rota `/meu-horario` — só a grade do professor no cenário
   **oficial** da unidade, mais a lista de unidades se ele atua em mais de uma.
