@@ -1,4 +1,5 @@
 from ..modelo import ContextoModelo
+from ..ocorrencias import aulas_em, do_dia
 from .base import Regra, registrar
 
 
@@ -10,6 +11,11 @@ class RegraUltimoHorario(Regra):
 
     def aplicar(self, ctx: ContextoModelo) -> None:
         disciplina_id = self.config.parametros["disciplina_id"]
+        nome_disciplina = next(
+            (d.nome for d in ctx.instancia.disciplinas if d.id == disciplina_id),
+            disciplina_id,
+        )
+        nome_turma = {t.id: t.nome for t in ctx.instancia.turmas}
         for i, aula in enumerate(ctx.aulas):
             if aula.atribuicao.disciplina_id != disciplina_id:
                 continue
@@ -31,5 +37,7 @@ class RegraUltimoHorario(Regra):
                         self.tipo,
                         var,
                         self.config.peso,
-                        f"{disciplina_id}: aula no último horário ({s.id})",
+                        f"{nome_turma[aula.atribuicao.turma_id]} –"
+                        f" {nome_disciplina}: aula no último horário {do_dia(s.dia)}",
+                        aulas_em([aula.atribuicao.id], [s.id], "turma"),
                     )

@@ -13,11 +13,11 @@ from ortools.sat.python import cp_model
 
 from .instancia import Instancia
 from .modelo import ContextoModelo
-from .resultado import AulaAlocada, Avaliacao, CustoRegra
+from .resultado import AulaAlocada, Avaliacao
 
 # A montagem é compartilhada de propósito: avaliar e resolver precisam aplicar
 # exatamente as mesmas regras, do mesmo jeito.
-from .solver import _montar
+from .solver import _consolidar_custos, _montar
 
 #: teto (s) do solve de avaliação: com a grade fixada o CP-SAT só propaga, e
 #: o chamador é síncrono (edição manual), então não herda o budget da geração.
@@ -120,22 +120,7 @@ class AvaliadorPreparado:
 
         valor = _leitor_de_valores(solver)
         violacoes = sorted(m for m, lit in ctx.assumptions.items() if valor(lit) == 0)
-        custos = []
-        total = 0
-        for regra_id, itens in ctx.custos.items():
-            valores = [valor(var) for (var, _, _, _) in itens]
-            custo = sum(
-                peso * v for (_, peso, _, _), v in zip(itens, valores, strict=True)
-            )
-            detalhes = [
-                desc for (_, _, desc, _), v in zip(itens, valores, strict=True) if v > 0
-            ]
-            custos.append(
-                CustoRegra(
-                    regra_id=regra_id, tipo=itens[0][3], custo=custo, detalhes=detalhes
-                )
-            )
-            total += custo
+        custos, total = _consolidar_custos(ctx, valor, grade)
         return Avaliacao(
             violacoes_hard=violacoes,
             custos=custos,

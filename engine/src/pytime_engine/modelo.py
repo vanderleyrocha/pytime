@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from ortools.sat.python import cp_model
 
 from .instancia import Atribuicao, Instancia, Slot
+from .ocorrencias import Localizador
 
 
 @dataclass
@@ -31,7 +32,7 @@ class ContextoModelo:
         self._slots_turma: dict[str, list[Slot]] = {
             t.id: instancia.slots_do_turno(t.turno_id) for t in instancia.turmas
         }
-        # regra_id -> [(var, peso, descricao, tipo)]
+        # regra_id -> [(var, peso, descricao, tipo, localizar)]
         self.custos: dict[str, list] = defaultdict(list)
         self.assumptions: dict[str, cp_model.IntVar] = {}
 
@@ -77,9 +78,20 @@ class ContextoModelo:
         )
 
     def adicionar_custo(
-        self, regra_id: str, tipo: str, var, peso: int, descricao: str
+        self,
+        regra_id: str,
+        tipo: str,
+        var,
+        peso: int,
+        descricao: str,
+        localizar: Localizador | None = None,
     ) -> None:
-        self.custos[regra_id].append((var, peso, descricao, tipo))
+        """Registra o termo `peso × var` do objetivo.
+
+        `localizar` diz onde a ocorrência aparece na grade pronta (ver
+        `ocorrencias`); sem ele a ocorrência só é listada, sem células.
+        """
+        self.custos[regra_id].append((var, peso, descricao, tipo, localizar))
 
     def assumption(self, motivo: str) -> cp_model.IntVar:
         if motivo not in self.assumptions:

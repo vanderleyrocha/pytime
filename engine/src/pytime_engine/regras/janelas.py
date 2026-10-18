@@ -1,4 +1,5 @@
 from ..modelo import ContextoModelo
+from ..ocorrencias import janelas_em, no_dia
 from .base import Regra, registrar
 
 
@@ -51,5 +52,6 @@ class RegraJanelasProfessor(Regra):
                     self.tipo,
                     janelas,
                     self.config.peso,
-                    f"{prof.nome}: janelas no dia {dia}",
+                    f"{prof.nome}: janelas {no_dia(dia)}",
+                    janelas_em(prof.id, [s.id for s in slots]),
                 )
