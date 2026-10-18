@@ -2,7 +2,8 @@
 
 Serve à edição manual (Fase 3): em vez de reimplementar as regras em outra
 linguagem, monta o mesmo modelo do solver, fixa cada `x[aula, slot]` conforme
-a grade e deixa o CP-SAT apenas propagar.
+a grade (por assumptions, para reaproveitar o modelo entre grades) e deixa o
+CP-SAT apenas propagar.
 """
 
 import time
@@ -23,13 +24,19 @@ from .solver import _montar
 _BUDGET_AVALIACAO = 5.0
 
 
-def avaliar(instancia: Instancia, grade: list[AulaAlocada]) -> Avaliacao:
-    """Diz quais regras hard a grade viola e quanto ela custa nas soft.
+class AvaliadorPreparado:
+    """Modelo de uma instância montado uma vez, para avaliar várias grades.
+
+    A montagem domina o custo de `avaliar` (≈1 s em 80 turmas); a edição
+    manual avalia muitas grades da mesma instância, então o processo
+    validador guarda um `AvaliadorPreparado` por instância e cada
+    `avaliar(grade)` só troca as assumptions que fixam a grade.
 
     Diferente do núcleo de conflito do solver (um subconjunto suficiente),
-    aqui todas as regras hard violadas são listadas: cada literal de
-    assumption fica livre e o modelo minimiza quantos são desligados; com a
-    grade fixada, só os literais de regras violadas são forçados a 0.
+    aqui todas as regras hard violadas são listadas: cada literal de regra
+    hard fica livre e o objetivo minimiza custo soft + nº de literais
+    desligados; com a grade fixada, só os literais de regras violadas são
+    forçados a 0.
 
     Premissa: nenhuma variável de custo soft depende de um literal hard
     (vale para as 10 regras do catálogo). Se uma regra futura compartilhar
@@ -39,60 +46,81 @@ def avaliar(instancia: Instancia, grade: list[AulaAlocada]) -> Avaliacao:
 
     Limitações: erros da própria instância voltam como `instancia:<frase>`;
     se a grade quebra uma restrição estrutural (carga, turma ou professor em
-    choque, slot fora do turno), só essas violações são devolvidas — o
-    modelo com a grade fixada nem existe nesse caso, então regras do catálogo
-    e custos não são avaliados.
-
-    Levanta `RuntimeError` se o CP-SAT não provar o resultado em
-    `_BUDGET_AVALIACAO` segundos (um literal em 0 sem prova de otimalidade
-    seria uma violação possivelmente falsa).
+    choque, slot fora do turno), só essas violações são devolvidas — com a
+    grade fixada o modelo seria inviável, então regras do catálogo e custos
+    não são avaliados. Não é seguro para uso concorrente: o modelo é
+    compartilhado entre chamadas (o chamador serializa por instância).
     """
-    inicio = time.monotonic()
 
-    erros = [
-        f"instancia:{e}"
-        for e in instancia.validar_referencias() or instancia.validar_matriz_cheia()
-    ]
-    if not erros:
-        erros = _violacoes_estruturais(instancia, grade)
-    if erros:
-        return Avaliacao(violacoes_hard=erros, tempo_segundos=time.monotonic() - inicio)
+    def __init__(self, instancia: Instancia):
+        self.instancia = instancia
+        self._erros_instancia = [
+            f"instancia:{e}"
+            for e in instancia.validar_referencias() or instancia.validar_matriz_cheia()
+        ]
+        if self._erros_instancia:
+            return
+        self._ctx, termos = _montar(instancia)
+        desligados = [~lit for lit in self._ctx.assumptions.values()]
+        self._ctx.model.minimize(sum(termos) + sum(desligados))
 
-    ctx, termos = _montar(instancia)
-    _fixar_grade(ctx, grade)
-    literais = ctx.assumptions
-    desligados = [~lit for lit in literais.values()]
-    ctx.model.minimize(sum(termos) + sum(desligados))
+    def avaliar(self, grade: list[AulaAlocada]) -> Avaliacao:
+        """Diz quais regras hard a grade viola e quanto ela custa nas soft.
 
-    solver = cp_model.CpSolver()
-    solver.parameters.max_time_in_seconds = _BUDGET_AVALIACAO
-    solver.parameters.num_workers = 8
-    status = solver.solve(ctx.model)
-    if status == cp_model.MODEL_INVALID:
-        raise RuntimeError("Modelo CP-SAT inválido: " + ctx.model.validate())
-    if status != cp_model.OPTIMAL:
-        raise RuntimeError(
-            f"Avaliação não concluída (status {solver.status_name(status)})."
-        )
-
-    violacoes = sorted(m for m, lit in literais.items() if solver.value(lit) == 0)
-    custos = []
-    total = 0
-    for regra_id, itens in ctx.custos.items():
-        custo = sum(peso * solver.value(var) for (var, peso, _, _) in itens)
-        detalhes = [desc for (var, _, desc, _) in itens if solver.value(var) > 0]
-        custos.append(
-            CustoRegra(
-                regra_id=regra_id, tipo=itens[0][3], custo=custo, detalhes=detalhes
+        Levanta `RuntimeError` se o CP-SAT não provar o resultado em
+        `_BUDGET_AVALIACAO` segundos (um literal em 0 sem prova de
+        otimalidade seria uma violação possivelmente falsa).
+        """
+        inicio = time.monotonic()
+        erros = self._erros_instancia or _violacoes_estruturais(self.instancia, grade)
+        if erros:
+            return Avaliacao(
+                violacoes_hard=erros, tempo_segundos=time.monotonic() - inicio
             )
+
+        ctx = self._ctx
+        ctx.model.clear_assumptions()
+        ctx.model.add_assumptions(_literais_da_grade(ctx, grade))
+
+        solver = cp_model.CpSolver()
+        solver.parameters.max_time_in_seconds = _BUDGET_AVALIACAO
+        solver.parameters.num_workers = 8
+        status = solver.solve(ctx.model)
+        if status == cp_model.MODEL_INVALID:
+            raise RuntimeError("Modelo CP-SAT inválido: " + ctx.model.validate())
+        if status != cp_model.OPTIMAL:
+            raise RuntimeError(
+                f"Avaliação não concluída (status {solver.status_name(status)})."
+            )
+
+        violacoes = sorted(
+            m for m, lit in ctx.assumptions.items() if solver.value(lit) == 0
         )
-        total += custo
-    return Avaliacao(
-        violacoes_hard=violacoes,
-        custos=custos,
-        custo_total=total,
-        tempo_segundos=time.monotonic() - inicio,
-    )
+        custos = []
+        total = 0
+        for regra_id, itens in ctx.custos.items():
+            custo = sum(peso * solver.value(var) for (var, peso, _, _) in itens)
+            detalhes = [desc for (var, _, desc, _) in itens if solver.value(var) > 0]
+            custos.append(
+                CustoRegra(
+                    regra_id=regra_id, tipo=itens[0][3], custo=custo, detalhes=detalhes
+                )
+            )
+            total += custo
+        return Avaliacao(
+            violacoes_hard=violacoes,
+            custos=custos,
+            custo_total=total,
+            tempo_segundos=time.monotonic() - inicio,
+        )
+
+
+def avaliar(instancia: Instancia, grade: list[AulaAlocada]) -> Avaliacao:
+    """Avalia uma única grade (monta o modelo a cada chamada).
+
+    Para várias grades da mesma instância use `AvaliadorPreparado`.
+    """
+    return AvaliadorPreparado(instancia).avaliar(grade)
 
 
 def _violacoes_estruturais(instancia: Instancia, grade: list[AulaAlocada]) -> list[str]:
@@ -135,8 +163,10 @@ def _violacoes_estruturais(instancia: Instancia, grade: list[AulaAlocada]) -> li
     return sorted(erros)
 
 
-def _fixar_grade(ctx: ContextoModelo, grade: list[AulaAlocada]) -> None:
-    """Fixa x[aula, slot] conforme a grade.
+def _literais_da_grade(
+    ctx: ContextoModelo, grade: list[AulaAlocada]
+) -> list[cp_model.LiteralT]:
+    """Literais que fixam x[aula, slot] conforme a grade (para assumptions).
 
     As aulas de uma atribuição recebem os slots em ordem de posição no turno,
     a mesma ordem exigida pela quebra de simetria do modelo.
@@ -160,5 +190,7 @@ def _fixar_grade(ctx: ContextoModelo, grade: list[AulaAlocada]) -> None:
         slot_da_aula[i] = ordenados[atrib.id][proximo[atrib.id]]
         proximo[atrib.id] += 1
 
-    for (i, slot_id), var in ctx.x.items():
-        ctx.model.add(var == int(slot_da_aula[i] == slot_id))
+    return [
+        var if slot_da_aula[i] == slot_id else ~var
+        for (i, slot_id), var in ctx.x.items()
+    ]
