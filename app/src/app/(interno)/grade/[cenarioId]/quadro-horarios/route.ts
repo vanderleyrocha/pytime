@@ -22,7 +22,8 @@ export async function GET(
   { params }: { params: Promise<{ cenarioId: string }> },
 ) {
   const { cenarioId } = await params;
-  const formato = new URL(request.url).searchParams.get("formato") === "csv" ? "csv" : "json";
+  const formato =
+    new URL(request.url).searchParams.get("formato") === "csv" ? "csv" : "json";
   const perfil = await obterUnidadeAtiva();
   if (!perfil) return texto(401, "É preciso estar autenticado.");
   const supabase = await criarClienteServidor();
@@ -36,27 +37,69 @@ export async function GET(
     .maybeSingle();
   if (!cenario) return texto(404, "Cenário não encontrado.");
 
-  const [ger, aulas, atribuicoes, slots, turnos, professores, disciplinas, turmas] =
-    await Promise.all([
-      supabase.from("geracoes").select("status, resultado").eq("id", cenario.geracao_id).maybeSingle(),
-      supabase.from("aulas_alocadas").select("atribuicao_id, slot_id").eq("cenario_id", cenarioId),
-      supabase
-        .from("atribuicoes")
-        .select("id, professor_id, disciplina_id, turma_id")
-        .eq("unidade_id", u),
-      supabase.from("slots").select("id, turno_id, dia, ordem").eq("unidade_id", u),
-      supabase.from("turnos").select("id, nome, codigo_externo").eq("unidade_id", u),
-      supabase.from("professores").select("id, nome, codigo_externo").eq("unidade_id", u),
-      supabase.from("disciplinas").select("id, nome, codigo_externo").eq("unidade_id", u),
-      supabase.from("turmas").select("id, nome, codigo_externo").eq("unidade_id", u),
-    ]);
-  const consultas = [ger, aulas, atribuicoes, slots, turnos, professores, disciplinas, turmas];
+  const [
+    ger,
+    aulas,
+    atribuicoes,
+    slots,
+    turnos,
+    professores,
+    disciplinas,
+    turmas,
+  ] = await Promise.all([
+    supabase
+      .from("geracoes")
+      .select("status, resultado")
+      .eq("id", cenario.geracao_id)
+      .maybeSingle(),
+    supabase
+      .from("aulas_alocadas")
+      .select("atribuicao_id, slot_id")
+      .eq("cenario_id", cenarioId),
+    supabase
+      .from("atribuicoes")
+      .select("id, professor_id, disciplina_id, turma_id")
+      .eq("unidade_id", u),
+    supabase
+      .from("slots")
+      .select("id, turno_id, dia, ordem")
+      .eq("unidade_id", u),
+    supabase
+      .from("turnos")
+      .select("id, nome, codigo_externo")
+      .eq("unidade_id", u),
+    supabase
+      .from("professores")
+      .select("id, nome, codigo_externo")
+      .eq("unidade_id", u),
+    supabase
+      .from("disciplinas")
+      .select("id, nome, codigo_externo")
+      .eq("unidade_id", u),
+    supabase
+      .from("turmas")
+      .select("id, nome, codigo_externo")
+      .eq("unidade_id", u),
+  ]);
+  const consultas = [
+    ger,
+    aulas,
+    atribuicoes,
+    slots,
+    turnos,
+    professores,
+    disciplinas,
+    turmas,
+  ];
   if (consultas.some((c) => c.error)) {
     return texto(500, "Não foi possível ler o cenário.");
   }
   const status = (ger.data?.resultado as { status?: string } | null)?.status;
   if (status !== "otimo" && status !== "viavel") {
-    return texto(422, "Só cenários de gerações concluídas (ótimo ou viável) são exportados.");
+    return texto(
+      422,
+      "Só cenários de gerações concluídas (ótimo ou viável) são exportados.",
+    );
   }
 
   const r = gerarQuadroHorarios({
@@ -69,7 +112,12 @@ export async function GET(
     turmas: turmas.data ?? [],
   } as DadosExportacao);
   if (!r.linhas) {
-    return texto(422, ["Não foi possível exportar:", ...r.erros.map((e) => `- ${e}`)].join("\n"));
+    return texto(
+      422,
+      ["Não foi possível exportar:", ...r.erros.map((e) => `- ${e}`)].join(
+        "\n",
+      ),
+    );
   }
 
   const nome = `quadro-horarios-${cenarioId.slice(0, 8)}.${formato}`;
@@ -92,10 +140,12 @@ export async function GET(
           2,
         );
   const headers: Record<string, string> = {
-    "Content-Type": formato === "csv" ? "text/csv; charset=utf-8" : "application/json",
+    "Content-Type":
+      formato === "csv" ? "text/csv; charset=utf-8" : "application/json",
     "Content-Disposition": `attachment; filename="${nome}"`,
   };
   // avisos (ex.: professor em dois turnos no mesmo tempo) não impedem o download
-  if (r.avisos.length) headers["X-Avisos"] = encodeURIComponent(r.avisos.join(" | "));
+  if (r.avisos.length)
+    headers["X-Avisos"] = encodeURIComponent(r.avisos.join(" | "));
   return new Response(corpo, { headers });
 }
