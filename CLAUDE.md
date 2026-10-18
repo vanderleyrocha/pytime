@@ -39,7 +39,9 @@ próxima.
    só roda em inviabilidade, remontando o modelo com `add_assumptions` para
    extrair o núcleo. Não "otimizar" isso de volta para uma fase.
 5. **Budget**: `Instancia.budget_segundos` default 60 s (teto 600 s (Fase 2)).
-   `num_workers = 8`. O tempo reportado em `Resultado.tempo_segundos` é medido
+   `num_workers = 8` na geração; a avaliação da edição manual usa 1 worker
+   (sem busca, o portfólio paralelo só custa — ver `avaliador._configurar`).
+   O tempo reportado em `Resultado.tempo_segundos` é medido
    no ponto de retorno.
 6. **Status do resultado**: exatamente `otimo | viavel | inviavel |
    sem_solucao_no_budget`; inviável sempre carrega `nucleo_conflito` legível.
@@ -112,6 +114,10 @@ ruff check . && ruff format --check .                  # lint + formatação
 mypy src                            # checagem de tipos
 python bench/benchmark.py           # benchmark 20/40/80 turmas (demorado)
 ```
+
+CI (`.github/workflows/ci.yml`) roda motor, app e worker em todo push na
+`master` e em todo PR. Testes de banco (worker + RLS) só rodam se o secret
+`SUPABASE_DB_URL_STAGING` existir — nunca aponte para o banco de produção.
 
 Pre-commit está configurado (`pre-commit install` uma vez): ruff + mypy a
 cada commit; a suíte pytest completa roda no `pre-push`.

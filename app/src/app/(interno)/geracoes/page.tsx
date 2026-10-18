@@ -2,6 +2,8 @@ import Link from "next/link";
 import { criarClienteServidor } from "@/lib/supabase/cliente-servidor";
 import { obterUnidadeAtiva } from "@/lib/unidade-ativa";
 import { haGeracaoEmAndamento } from "@/lib/geracoes";
+import type { InstanciaMotor } from "@/lib/instancia";
+import { traduzirNucleo } from "@/lib/nucleo";
 import { FormularioGerar } from "./gerar";
 import { AoVivo } from "./ao-vivo";
 import { tentarNovamente } from "./actions";
@@ -26,6 +28,22 @@ export default async function PaginaGeracoes() {
     .eq("unidade_id", perfil.unidade_id)
     .order("criada_em", { ascending: false })
     .limit(20);
+
+  // o snapshot da instância só é lido para as inviáveis: dá os nomes do
+  // núcleo de conflito sem trafegar o JSONB de todas as gerações
+  const idsInviaveis = (geracoes ?? [])
+    .filter((g) => g.status === "inviavel")
+    .map((g) => g.id);
+  const instancias = new Map<string, InstanciaMotor>();
+  if (idsInviaveis.length > 0) {
+    const { data } = await supabase
+      .from("geracoes")
+      .select("id, instancia")
+      .in("id", idsInviaveis);
+    for (const linha of data ?? []) {
+      instancias.set(linha.id, linha.instancia as InstanciaMotor);
+    }
+  }
 
   const emAndamento = haGeracaoEmAndamento(
     (geracoes ?? []).map((g) => g.status),
@@ -82,11 +100,17 @@ export default async function PaginaGeracoes() {
                     </Link>
                   )}
                   {g.status === "inviavel" && (
-                    <ul className="list-inside list-disc text-red-700">
-                      {(g.nucleo_conflito ?? []).map((m: string) => (
-                        <li key={m}>{m}</li>
-                      ))}
-                    </ul>
+                    <div className="text-red-700">
+                      <p>Estas condições não podem ser atendidas juntas:</p>
+                      <ul className="list-inside list-disc">
+                        {traduzirNucleo(
+                          g.nucleo_conflito ?? [],
+                          instancias.get(g.id) ?? null,
+                        ).map((m, i) => (
+                          <li key={i}>{m}</li>
+                        ))}
+                      </ul>
+                    </div>
                   )}
                   {g.status === "erro" && (
                     <span className="text-red-700">{g.detalhe_erro}</span>

@@ -1,0 +1,76 @@
+# CI do PyTime: motor, app e worker em todo push e pull request.
+# Testes que dependem de banco (worker + RLS) só rodam se o secret
+# SUPABASE_DB_URL_STAGING existir — NUNCA aponte para o banco de produção:
+# os testes do worker reivindicam a geração pendente mais antiga.
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  engine:
+    name: Motor (engine/)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: engine
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: engine/pyproject.toml
+      - run: pip install -e ".[dev]"
+      - run: ruff check .
+      - run: ruff format --check .
+      - run: python -m mypy src
+      - run: python -m pytest -q
+
+  app:
+    name: App (app/)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: app
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+      - run: npm ci
+      - run: npm run teste
+      - run: npm run lint
+      - run: npm run build
+
+  worker:
+    name: Worker (worker/)
+    runs-on: ubuntu-latest
+    env:
+      SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL_STAGING }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: |
+            engine/pyproject.toml
+            worker/pyproject.toml
+      - run: pip install ./engine -e "./worker[dev]"
+      - working-directory: worker
+        run: ruff check . && ruff format --check .
+      # sem o secret, os testes de banco são pulados (skip) pelo conftest
+      - working-directory: worker
+        run: python -m pytest -q
+      - name: Testes de RLS (pgTAP)
+        if: env.SUPABASE_DB_URL != ''
+        run: python supabase/tests/rodar_testes.py

@@ -38,9 +38,11 @@ class ContextoModelo:
         # índices para occ_* não varrerem todas as aulas a cada chamada
         self._aulas_da_atribuicao: dict[str, list[int]] = defaultdict(list)
         self._aulas_do_professor: dict[str, list[int]] = defaultdict(list)
+        self._aulas_da_turma: dict[str, list[int]] = defaultdict(list)
         for i, aula in enumerate(self.aulas):
             self._aulas_da_atribuicao[aula.atribuicao.id].append(i)
             self._aulas_do_professor[aula.atribuicao.professor_id].append(i)
+            self._aulas_da_turma[aula.atribuicao.turma_id].append(i)
 
         self.x: dict[tuple[int, str], cp_model.IntVar] = {}
         for i, aula in enumerate(self.aulas):
@@ -54,18 +56,24 @@ class ContextoModelo:
     def slots_da_turma(self, turma_id: str) -> list[Slot]:
         return self._slots_turma[turma_id]
 
+    # LinearExpr.sum monta a expressão de uma vez; o sum() do Python encadeia
+    # um objeto por termo e dominava o tempo de montagem em 80 turmas.
     def occ_atribuicao(self, atribuicao_id: str, slot_id: str):
-        return sum(
-            self.x[(i, slot_id)]
-            for i in self._aulas_da_atribuicao[atribuicao_id]
-            if (i, slot_id) in self.x
+        return cp_model.LinearExpr.sum(
+            [
+                self.x[(i, slot_id)]
+                for i in self._aulas_da_atribuicao[atribuicao_id]
+                if (i, slot_id) in self.x
+            ]
         )
 
     def occ_professor(self, professor_id: str, slot_id: str):
-        return sum(
-            self.x[(i, slot_id)]
-            for i in self._aulas_do_professor[professor_id]
-            if (i, slot_id) in self.x
+        return cp_model.LinearExpr.sum(
+            [
+                self.x[(i, slot_id)]
+                for i in self._aulas_do_professor[professor_id]
+                if (i, slot_id) in self.x
+            ]
         )
 
     def adicionar_custo(
@@ -86,19 +94,13 @@ class ContextoModelo:
 
         # turma: exatamente 1 aula por slot (matriz cheia)
         for turma in self.instancia.turmas:
-            indices = [
-                i for i, a in enumerate(self.aulas) if a.atribuicao.turma_id == turma.id
-            ]
+            indices = self._aulas_da_turma[turma.id]
             for slot in self._slots_turma[turma.id]:
                 self.model.add_exactly_one(self.x[(i, slot.id)] for i in indices)
 
         # professor: no máximo 1 aula por slot
         for prof in self.instancia.professores:
-            indices = [
-                i
-                for i, a in enumerate(self.aulas)
-                if a.atribuicao.professor_id == prof.id
-            ]
+            indices = self._aulas_do_professor[prof.id]
             slots_ids = {
                 s.id
                 for i in indices
@@ -113,11 +115,14 @@ class ContextoModelo:
 
         # quebra de simetria: aulas da mesma atribuição em ordem de slot
         for atrib in self.instancia.atribuicoes:
-            indices = [
-                i for i, a in enumerate(self.aulas) if a.atribuicao.id == atrib.id
-            ]
+            indices = self._aulas_da_atribuicao[atrib.id]
             slots = self._slots_turma[atrib.turma_id]
+            pesos = list(range(len(slots)))
             for i1, i2 in zip(indices, indices[1:], strict=False):
-                pos1 = sum(k * self.x[(i1, s.id)] for k, s in enumerate(slots))
-                pos2 = sum(k * self.x[(i2, s.id)] for k, s in enumerate(slots))
+                pos1 = cp_model.LinearExpr.weighted_sum(
+                    [self.x[(i1, s.id)] for s in slots], pesos
+                )
+                pos2 = cp_model.LinearExpr.weighted_sum(
+                    [self.x[(i2, s.id)] for s in slots], pesos
+                )
                 self.model.add(pos1 < pos2)
