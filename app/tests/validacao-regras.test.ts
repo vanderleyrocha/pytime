@@ -9,9 +9,11 @@ const UUID_A = "00000000-0000-4000-8000-00000000000a";
 const UUID_B = "00000000-0000-4000-8000-00000000000b";
 
 describe("catálogo de regras", () => {
-  it("tem exatamente os 10 tipos do motor", () => {
+  it("tem exatamente os 12 tipos do motor", () => {
     expect(Object.keys(CATALOGO_REGRAS).sort()).toEqual([
+      "aulas_juntas",
       "compactacao_dias",
+      "disciplina_sincronizada",
       "disponibilidade_professor",
       "distribuicao_disciplina",
       "geminadas",
@@ -28,8 +30,26 @@ describe("catálogo de regras", () => {
     expect(CATALOGO_REGRAS.janelas_professor.modo).toBe("fixa_soft");
     expect(CATALOGO_REGRAS.ultimo_horario.modo).toBe("alternavel");
     expect(CATALOGO_REGRAS.nao_mesmo_dia.modo).toBe("alternavel");
+    expect(CATALOGO_REGRAS.aulas_juntas.modo).toBe("alternavel");
+    expect(CATALOGO_REGRAS.disciplina_sincronizada.modo).toBe("alternavel");
+    expect(hardPadrao("aulas_juntas")).toBe(true);
+    expect(hardPadrao("disciplina_sincronizada")).toBe(true);
     expect(hardPadrao("geminadas")).toBe(true);
     expect(hardPadrao("compactacao_dias")).toBe(false);
+  });
+  it("valida os parâmetros das regras de aulas juntas e sincronizada", () => {
+    expect(esquemaParametros.safeParse({ tipo: "aulas_juntas" }).success).toBe(
+      true,
+    );
+    expect(
+      esquemaParametros.safeParse({
+        tipo: "disciplina_sincronizada",
+        disciplina_id: UUID_A,
+      }).success,
+    ).toBe(true);
+    expect(
+      esquemaParametros.safeParse({ tipo: "disciplina_sincronizada" }).success,
+    ).toBe(false);
   });
   it("valida parâmetros por tipo", () => {
     expect(

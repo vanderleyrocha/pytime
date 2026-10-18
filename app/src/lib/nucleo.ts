@@ -80,6 +80,15 @@ function traduzirMotivo(
       const d = nomes.disciplinas.get(String(p.disciplina_id)) ?? "?";
       return `Regra "${CATALOGO_REGRAS.ultimo_horario.rotulo}" (${d}): não é possível evitar o último horário do dia.`;
     }
+    case "aulas_juntas": {
+      const turma = nomes.turmas.get(id) ?? `uma turma removida (${id})`;
+      return `Regra "${CATALOGO_REGRAS.aulas_juntas.rotulo}" (${turma}): não é possível manter juntas as aulas de cada disciplina no mesmo dia.`;
+    }
+    case "disciplina_sincronizada": {
+      const p = instancia.regras.find((r) => r.id === id)?.parametros ?? {};
+      const d = nomes.disciplinas.get(String(p.disciplina_id)) ?? "?";
+      return `Regra "${CATALOGO_REGRAS.disciplina_sincronizada.rotulo}" (${d}): não é possível pôr a disciplina nos mesmos horários em todas as turmas — confira se a carga é igual em todas e se os professores estão disponíveis nesses horários.`;
+    }
     case "estrutural": {
       const detalhe = traduzirEstrutural(resto, instancia, nomes);
       if (detalhe) return detalhe;

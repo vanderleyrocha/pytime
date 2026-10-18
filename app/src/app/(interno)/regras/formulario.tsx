@@ -176,7 +176,8 @@ export function FormularioRegra({
               />
             </div>
           )}
-          {tipo === "ultimo_horario" && (
+          {(tipo === "ultimo_horario" ||
+            tipo === "disciplina_sincronizada") && (
             <SeletorDisciplina
               nome="disciplina_id"
               rotulo="Disciplina"
