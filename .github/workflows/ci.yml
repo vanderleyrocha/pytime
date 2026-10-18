@@ -99,7 +99,22 @@ jobs:
         if: env.URL != ''
         run: |
           set -e
-          case "$URL" in https://*.supabase.co) ;; *) echo "URL do staging fora do formato https://<ref>.supabase.co"; exit 1 ;; esac
+          # tolera espaço, quebra de linha e barra final coladas no secret
+          URL=$(printf '%s' "$URL" | tr -d '[:space:]'); URL=${URL%/}
+          ANON=$(printf '%s' "$ANON" | tr -d '[:space:]')
+          SERVICE=$(printf '%s' "$SERVICE" | tr -d '[:space:]')
+          case "$URL" in
+            https://*.supabase.co) ;;
+            *)
+              # diagnóstico sem revelar o valor
+              echo "SUPABASE_URL_STAGING fora do formato https://<ref>.supabase.co:"
+              case "$URL" in https://*) echo "- começa com https://: sim" ;; *) echo "- começa com https://: NÃO" ;; esac
+              case "$URL" in *supabase.co*) echo "- contém supabase.co: sim" ;; *) echo "- contém supabase.co: NÃO" ;; esac
+              case "$URL" in *postgres*) echo "- parece string de conexão do banco (postgres...), não a Project URL" ;; esac
+              case "$URL" in *sb_*|eyJ*) echo "- parece uma CHAVE, não a URL (secrets trocados?)" ;; esac
+              echo "- tamanho: ${#URL} caracteres (o esperado é 40)"
+              exit 1 ;;
+          esac
           # chaves novas (sb_publishable_/sb_secret_) vão só no apikey; as
           # antigas (JWT) também no Authorization: tenta os dois formatos
           status() {
