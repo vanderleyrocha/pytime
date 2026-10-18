@@ -16,16 +16,24 @@ describe("schemas de cadastro", () => {
     expect(esquemaTurno.safeParse({ nome: "  " }).success).toBe(false);
   });
   it("turma exige turno válido", () => {
-    expect(esquemaTurma.safeParse({ nome: "6º A", turno_id: UUID }).success).toBe(true);
-    expect(esquemaTurma.safeParse({ nome: "6º A", turno_id: "x" }).success).toBe(false);
+    expect(
+      esquemaTurma.safeParse({ nome: "6º A", turno_id: UUID }).success,
+    ).toBe(true);
+    expect(
+      esquemaTurma.safeParse({ nome: "6º A", turno_id: "x" }).success,
+    ).toBe(false);
   });
   it("disciplina exige nome", () => {
-    expect(esquemaDisciplina.safeParse({ nome: "Matemática" }).success).toBe(true);
+    expect(esquemaDisciplina.safeParse({ nome: "Matemática" }).success).toBe(
+      true,
+    );
   });
   it("recurso coage capacidade e exige >= 1", () => {
     const ok = esquemaRecurso.safeParse({ nome: "Lab", capacidade: "2" });
     expect(ok.success && ok.data.capacidade).toBe(2);
-    expect(esquemaRecurso.safeParse({ nome: "Lab", capacidade: 0 }).success).toBe(false);
+    expect(
+      esquemaRecurso.safeParse({ nome: "Lab", capacidade: 0 }).success,
+    ).toBe(false);
   });
   it("grade exige dias 0-6, horários e fim > início", () => {
     const base = {
@@ -41,6 +49,36 @@ describe("schemas de cadastro", () => {
         horarios: [{ hora_inicio: "08:00", hora_fim: "07:00" }],
       }).success,
     ).toBe(false);
+  });
+  it("grade recusa dia repetido, excesso de horários e sobreposição", () => {
+    const h = (i: string, f: string) => ({ hora_inicio: i, hora_fim: f });
+    const base = { dias: [0, 1], horarios: [h("07:00", "07:50")] };
+    expect(esquemaGrade.safeParse({ ...base, dias: [0, 0] }).success).toBe(
+      false,
+    );
+    expect(
+      esquemaGrade.safeParse({
+        ...base,
+        horarios: Array.from({ length: 13 }, (_, i) =>
+          h(
+            `${String(7 + i).padStart(2, "0")}:00`,
+            `${String(7 + i).padStart(2, "0")}:50`,
+          ),
+        ),
+      }).success,
+    ).toBe(false);
+    expect(
+      esquemaGrade.safeParse({
+        ...base,
+        horarios: [h("07:00", "07:50"), h("07:30", "08:20")],
+      }).success,
+    ).toBe(false);
+    expect(
+      esquemaGrade.safeParse({
+        ...base,
+        horarios: [h("07:50", "08:40"), h("07:00", "07:50")],
+      }).success,
+    ).toBe(true);
   });
   it("atribuição espelha o motor (carga >= 1, geminadas >= 0)", () => {
     const base = {

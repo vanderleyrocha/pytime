@@ -1,16 +1,20 @@
 import { criarClienteServidor } from "@/lib/supabase/cliente-servidor";
 import { obterUnidadeAtiva } from "@/lib/unidade-ativa";
-import { CATALOGO_REGRAS, type TipoRegra } from "@/lib/validacao/regras";
 import {
-  AcoesRegra,
-  FormularioRegra,
-  type RegraExistente,
-} from "./formulario";
+  CATALOGO_REGRAS,
+  ordensDaUnidade,
+  type TipoRegra,
+} from "@/lib/validacao/regras";
+import { AcoesRegra, FormularioRegra, type RegraExistente } from "./formulario";
 
 export default async function PaginaRegras() {
   const perfil = (await obterUnidadeAtiva())!;
   const supabase = await criarClienteServidor();
-  const [{ data: regras }, { data: disciplinas }] = await Promise.all([
+  const [
+    { data: regras, error: erroRegras },
+    { data: disciplinas, error: erroDisciplinas },
+    { data: slots, error: erroSlots },
+  ] = await Promise.all([
     supabase
       .from("regras")
       .select("id, tipo, hard, peso, ativa, parametros")
@@ -21,7 +25,10 @@ export default async function PaginaRegras() {
       .select("id, nome")
       .eq("unidade_id", perfil.unidade_id)
       .order("nome"),
+    supabase.from("slots").select("ordem").eq("unidade_id", perfil.unidade_id),
   ]);
+  const erroLeitura = erroRegras || erroDisciplinas || erroSlots;
+  const ordens = ordensDaUnidade(slots ?? []);
 
   const opcoesDisciplinas = (disciplinas ?? []).map((d) => ({
     valor: d.id,
@@ -57,8 +64,13 @@ export default async function PaginaRegras() {
     <div className="flex flex-col gap-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Regras do horário</h1>
-        <FormularioRegra disciplinas={opcoesDisciplinas} />
+        <FormularioRegra disciplinas={opcoesDisciplinas} ordens={ordens} />
       </div>
+      {erroLeitura && (
+        <p role="alert" className="text-sm text-red-700">
+          Não foi possível ler todas as regras. Recarregue a página.
+        </p>
+      )}
       <table className="w-full text-sm">
         <thead>
           <tr className="border-b text-left">
@@ -91,6 +103,7 @@ export default async function PaginaRegras() {
                 <td>{r.ativa ? "Ativa" : "Inativa"}</td>
                 <td className="flex gap-2 py-2">
                   <FormularioRegra
+                    ordens={ordens}
                     disciplinas={opcoesDisciplinas}
                     registro={regra}
                   />

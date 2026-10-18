@@ -21,7 +21,10 @@ export default async function PaginaDisponibilidade({
     .maybeSingle();
   if (!professor) notFound();
 
-  const [{ data: slots }, { data: marcadas }] = await Promise.all([
+  const [
+    { data: slots, error: erroSlots },
+    { data: marcadas, error: erroMarcadas },
+  ] = await Promise.all([
     supabase
       .from("slots")
       // hint da FK simples: a FK composta de tenant torna o embed ambíguo
@@ -46,10 +49,12 @@ export default async function PaginaDisponibilidade({
 
   return (
     <div className="flex flex-col gap-4">
-      <h1 className="text-2xl font-bold">
-        Disponibilidade — {professor.nome}
-      </h1>
-      {slotsMatriz.length === 0 ? (
+      <h1 className="text-2xl font-bold">Disponibilidade — {professor.nome}</h1>
+      {erroSlots || erroMarcadas ? (
+        <p role="alert" className="text-sm text-red-700">
+          Não foi possível ler a disponibilidade. Recarregue a página.
+        </p>
+      ) : slotsMatriz.length === 0 ? (
         <p className="text-sm text-amber-600">
           Nenhum slot cadastrado. Monte a grade em Turnos primeiro.
         </p>
