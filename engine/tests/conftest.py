@@ -9,6 +9,7 @@ from pytime_engine.instancia import (
     Turma,
     Turno,
 )
+from pytime_engine.resultado import AulaAlocada
 
 
 def slots_semana(turno_id: str, dias: int = 5, por_dia: int = 4) -> list[Slot]:
@@ -62,3 +63,21 @@ def instancia_minima(
         regras=regras or [],
         budget_segundos=10,
     )
+
+
+def grade_fixa(
+    dias: list[str], turma_atrib: str = "", turno_id: str = "manha"
+) -> list[AulaAlocada]:
+    """Grade escrita à mão: uma linha por dia, uma disciplina por horário.
+
+    `["mat mat por his", ...]` põe a atribuição `a-mat` + `turma_atrib` em
+    `manha-d0-h0`, `manha-d0-h1` etc.
+    """
+    return [
+        AulaAlocada(
+            atribuicao_id=f"a-{disciplina}{turma_atrib}",
+            slot_id=f"{turno_id}-d{d}-h{h}",
+        )
+        for d, linha in enumerate(dias)
+        for h, disciplina in enumerate(linha.split())
+    ]

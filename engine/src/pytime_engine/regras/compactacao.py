@@ -1,10 +1,15 @@
 from ..modelo import ContextoModelo
+from ..ocorrencias import no_dia
 from .base import Regra, registrar
 
 
 @registrar
 class RegraCompactacaoDias(Regra):
-    """Custa 1×peso por dia em que o professor trabalha."""
+    """Custa 1×peso por dia em que o professor trabalha.
+
+    As ocorrências não marcam células: todo dia de trabalho custa, então
+    marcar as aulas só repetiria a grade do professor.
+    """
 
     tipo = "compactacao_dias"
 
@@ -27,5 +32,5 @@ class RegraCompactacaoDias(Regra):
                     self.tipo,
                     trabalha,
                     self.config.peso,
-                    f"{prof.nome}: trabalha no dia {dia}",
+                    f"{prof.nome}: trabalha {no_dia(dia)}",
                 )

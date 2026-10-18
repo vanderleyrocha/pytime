@@ -1,6 +1,6 @@
-from conftest import slots_semana
+from conftest import grade_fixa, slots_semana
 
-from pytime_engine import resolver
+from pytime_engine import avaliar, resolver
 from pytime_engine.instancia import (
     Atribuicao,
     Disciplina,
@@ -10,6 +10,7 @@ from pytime_engine.instancia import (
     Turma,
     Turno,
 )
+from pytime_engine.resultado import Celula
 
 DISPONIBILIDADE = RegraConfig(id="r-disp", tipo="disponibilidade_professor", hard=True)
 SINCRONIZADA = RegraConfig(
@@ -112,3 +113,24 @@ def test_sincronizada_so_alinha_turmas_do_mesmo_turno():
         duas_turmas([DISPONIBILIDADE, SINCRONIZADA], CONFLITO, turno_t2="tarde")
     )
     assert r.status == "otimo"
+
+
+def test_sincronizada_soft_marca_as_aulas_fora_de_sincronia():
+    soft = SINCRONIZADA.model_copy(update={"hard": False})
+    inst = duas_turmas([soft])
+    grade = grade_fixa(["ele mat", "ele mat"], "-t1") + grade_fixa(
+        ["ele mat", "mat ele"], "-t2"
+    )
+
+    [custo] = avaliar(inst, grade).custos
+
+    assert [(o.descricao, o.celulas) for o in custo.ocorrencias] == [
+        (
+            "Eletiva fora de sincronia em T2 (terça, 1º horário)",
+            [Celula(slot_id="manha-d1-h0", turma_id="t1")],
+        ),
+        (
+            "Eletiva fora de sincronia em T2 (terça, 2º horário)",
+            [Celula(slot_id="manha-d1-h1", turma_id="t2")],
+        ),
+    ]

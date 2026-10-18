@@ -1,6 +1,7 @@
 from collections import defaultdict
 
 from ..modelo import ContextoModelo
+from ..ocorrencias import aulas_em, no_dia
 from .base import Regra, registrar
 
 
@@ -76,7 +77,8 @@ class RegraAulasJuntas(Regra):
                             self.tipo,
                             extra,
                             self.config.peso,
-                            f"{turma.nome}: {nomes.get(disciplina_id, disciplina_id)}"
-                            " separada"
-                            f" no dia {dia}",
+                            f"{turma.nome} –"
+                            f" {nomes.get(disciplina_id, disciplina_id)}:"
+                            f" aulas separadas {no_dia(dia)}",
+                            aulas_em(atribs, [s.id for s in slots], "turma"),
                         )

@@ -1,9 +1,10 @@
 from collections import defaultdict
 
-from conftest import instancia_minima
+from conftest import grade_fixa, instancia_minima
 
-from pytime_engine import resolver
+from pytime_engine import avaliar, resolver
 from pytime_engine.instancia import Disponibilidade, RegraConfig
+from pytime_engine.resultado import Celula
 
 
 def contar_janelas(grade, prefixo_prof_atribs: list[str]) -> int:
@@ -55,3 +56,29 @@ def test_janela_forcada_e_reportada():
     custo_jan = next(c for c in r.custos if c.regra_id == "r-jan")
     assert custo_jan.custo == 2
     assert custo_jan.custo == contar_janelas(r.grade, ["a-his"])
+
+
+def test_ocorrencias_marcam_o_horario_vago_na_grade_do_professor():
+    inst = instancia_minima(
+        regras=[RegraConfig(id="r-jan", tipo="janelas_professor", hard=False)]
+    )
+    grade = grade_fixa(
+        [
+            "por his por his",
+            "his his por por",
+            "mat mat por por",
+            "mat mat mat mat",
+            "mat mat por por",
+        ]
+    )
+
+    [custo] = avaliar(inst, grade).custos
+
+    celulas = {o.celulas[0].professor_id: o.celulas for o in custo.ocorrencias}
+    assert celulas["prof-por"] == [
+        Celula(slot_id="manha-d0-h1", professor_id="prof-por")
+    ]
+    assert celulas["prof-his"] == [
+        Celula(slot_id="manha-d0-h2", professor_id="prof-his")
+    ]
+    assert all("segunda" in o.descricao for o in custo.ocorrencias)

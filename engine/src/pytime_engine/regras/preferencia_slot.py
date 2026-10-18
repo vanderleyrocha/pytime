@@ -1,5 +1,6 @@
 from ..instancia import Disponibilidade
 from ..modelo import ContextoModelo
+from ..ocorrencias import aulas_em, rotulo_slot
 from .base import Regra, registrar
 
 
@@ -32,7 +33,8 @@ class RegraPreferenciaProfessor(Regra):
                             self.tipo,
                             var,
                             self.config.peso,
-                            f"{prof.nome}: aula em slot evitado {s.id}",
+                            f"{prof.nome}: aula em horário evitado ({rotulo_slot(s)})",
+                            aulas_em([aula.atribuicao.id], [s.id], "professor"),
                         )
                     elif prefere and s.id not in prefere:
                         ctx.adicionar_custo(
@@ -40,7 +42,9 @@ class RegraPreferenciaProfessor(Regra):
                             self.tipo,
                             var,
                             self.config.peso,
-                            f"{prof.nome}: aula fora dos slots preferidos ({s.id})",
+                            f"{prof.nome}: aula fora dos horários preferidos"
+                            f" ({rotulo_slot(s)})",
+                            aulas_em([aula.atribuicao.id], [s.id], "professor"),
                         )
 
 
@@ -59,6 +63,16 @@ class RegraPreferenciaDisciplina(Regra):
         disciplina_id = self.config.parametros["disciplina_id"]
         ordens = set(self.config.parametros["ordens"])
         modo = self.config.parametros.get("modo", "evita")
+        nome_disciplina = next(
+            (d.nome for d in ctx.instancia.disciplinas if d.id == disciplina_id),
+            disciplina_id,
+        )
+        nome_turma = {t.id: t.nome for t in ctx.instancia.turmas}
+        motivo = (
+            "aula em horário evitado"
+            if modo == "evita"
+            else "aula fora dos horários preferidos"
+        )
         for i, aula in enumerate(ctx.aulas):
             if aula.atribuicao.disciplina_id != disciplina_id:
                 continue
@@ -72,5 +86,7 @@ class RegraPreferenciaDisciplina(Regra):
                         self.tipo,
                         ctx.x[(i, s.id)],
                         self.config.peso,
-                        f"{disciplina_id}: aula na ordem {s.ordem} (modo {modo})",
+                        f"{nome_turma[aula.atribuicao.turma_id]} –"
+                        f" {nome_disciplina}: {motivo} ({rotulo_slot(s)})",
+                        aulas_em([aula.atribuicao.id], [s.id], "turma"),
                     )

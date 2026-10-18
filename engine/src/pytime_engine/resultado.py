@@ -8,11 +8,39 @@ class AulaAlocada(BaseModel):
     slot_id: str
 
 
+class Celula(BaseModel):
+    """Célula da grade marcada por uma ocorrência de regra soft.
+
+    Exatamente um de `turma_id`/`professor_id` vem preenchido: diz em qual
+    grade (da turma ou do professor) a marca faz sentido.
+    """
+
+    slot_id: str
+    turma_id: str | None = None
+    professor_id: str | None = None
+
+
+class Ocorrencia(BaseModel):
+    """Um termo de custo soft violado: o quê, quanto e onde na grade.
+
+    `unidades` é o valor do termo (ex. aulas acima do máximo no dia) e
+    `custo` = peso × unidades. `celulas` vazia = a ocorrência não tem lugar
+    próprio na grade (ex. dias de trabalho do professor).
+    """
+
+    descricao: str
+    unidades: int
+    custo: int
+    celulas: list[Celula] = Field(default_factory=list)
+
+
 class CustoRegra(BaseModel):
     regra_id: str
     tipo: str
     custo: int
+    #: descrições das ocorrências (mantido por compatibilidade)
     detalhes: list[str] = Field(default_factory=list)
+    ocorrencias: list[Ocorrencia] = Field(default_factory=list)
 
 
 class Resultado(BaseModel):

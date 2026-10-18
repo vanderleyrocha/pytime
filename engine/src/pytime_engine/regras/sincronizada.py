@@ -1,6 +1,7 @@
 from collections import defaultdict
 
 from ..modelo import ContextoModelo
+from ..ocorrencias import aulas_em, rotulo_slot
 from .base import Regra, registrar
 
 
@@ -79,6 +80,11 @@ class RegraDisciplinaSincronizada(Regra):
                             diferente,
                             self.config.peso,
                             f"{nome_disciplina} fora de sincronia em"
-                            f" {nome_turma[turma_id]} (dia {s.dia},"
-                            f" {s.ordem + 1}º horário)",
+                            f" {nome_turma[turma_id]} ({rotulo_slot(s)})",
+                            aulas_em(
+                                atribs_por_turma[referencia]
+                                + atribs_por_turma[turma_id],
+                                [s.id],
+                                "turma",
+                            ),
                         )

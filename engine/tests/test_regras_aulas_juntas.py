@@ -1,8 +1,8 @@
 from collections import defaultdict
 
-from conftest import instancia_minima
+from conftest import grade_fixa, instancia_minima
 
-from pytime_engine import resolver
+from pytime_engine import avaliar, resolver
 from pytime_engine.instancia import RegraConfig
 
 DISPONIBILIDADE = RegraConfig(id="r-disp", tipo="disponibilidade_professor", hard=True)
@@ -108,3 +108,26 @@ def test_aulas_juntas_considera_a_disciplina_mesmo_com_dois_professores():
     )
     assert r.status == "inviavel"
     assert "aulas_juntas:t1" in r.nucleo_conflito
+
+
+def test_aulas_juntas_soft_marca_as_aulas_separadas_do_dia():
+    inst = instancia_minima(
+        regras=[RegraConfig(id="r-jun", tipo="aulas_juntas", hard=False)]
+    )
+    grade = grade_fixa(
+        [
+            "mat por mat por",
+            "mat mat por por",
+            "mat mat por por",
+            "mat mat his his",
+            "por por his his",
+        ]
+    )
+
+    [custo] = avaliar(inst, grade).custos
+
+    celulas = {o.descricao: [c.slot_id for c in o.celulas] for o in custo.ocorrencias}
+    assert celulas == {
+        "Turma 1 – Mat: aulas separadas na segunda": ["manha-d0-h0", "manha-d0-h2"],
+        "Turma 1 – Por: aulas separadas na segunda": ["manha-d0-h1", "manha-d0-h3"],
+    }
