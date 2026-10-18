@@ -330,6 +330,22 @@ def test_avaliador_preparado_reaproveita_o_modelo_sem_vazar_estado():
 
     assert preparado.avaliar(violada).violacoes_hard == ["disponibilidade:prof-mat"]
     assert preparado.avaliar(valida).violacoes_hard == []
+    # custo contado à mão: dia 0 tem uma janela de prof-mat e uma de prof-por
+    # na grade violada; na válida prof-por (h0 e h3) tem duas e prof-mat nenhuma
+    assert preparado.avaliar(violada).custo_total == 2
+    assert preparado.avaliar(valida).custo_total == 2
+
+
+def test_avaliador_preparado_nao_enxerga_mutacao_posterior_da_instancia():
+    from pytime_engine import AvaliadorPreparado
+
+    inst = instancia_minima()
+    preparado = AvaliadorPreparado(inst)
+    inst.atribuicoes[0].carga_semanal = 7  # mutação depois de preparar
+
+    av = preparado.avaliar(GRADE_COM_JANELAS)
+
+    assert av.violacoes_hard == []
 
 
 def test_avaliador_preparado_com_grade_estrutural_invalida():
