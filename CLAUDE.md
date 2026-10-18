@@ -39,7 +39,9 @@ próxima.
    só roda em inviabilidade, remontando o modelo com `add_assumptions` para
    extrair o núcleo. Não "otimizar" isso de volta para uma fase.
 5. **Budget**: `Instancia.budget_segundos` default 60 s (teto 600 s (Fase 2)).
-   `num_workers = 8`. O tempo reportado em `Resultado.tempo_segundos` é medido
+   `num_workers = 8` na geração; a avaliação da edição manual usa 1 worker
+   (sem busca, o portfólio paralelo só custa — ver `avaliador._configurar`).
+   O tempo reportado em `Resultado.tempo_segundos` é medido
    no ponto de retorno.
 6. **Status do resultado**: exatamente `otimo | viavel | inviavel |
    sem_solucao_no_budget`; inviável sempre carrega `nucleo_conflito` legível.
