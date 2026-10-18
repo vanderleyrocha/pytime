@@ -2,7 +2,7 @@
 
 Serve à edição manual (Fase 3): em vez de reimplementar as regras em outra
 linguagem, monta o mesmo modelo do solver, fixa cada `x[aula, slot]` conforme
-a grade (por assumptions, para reaproveitar o modelo entre grades) e deixa o
+a grade (num clone, para reaproveitar o modelo entre grades) e deixa o
 CP-SAT apenas propagar.
 """
 
@@ -24,13 +24,31 @@ from .solver import _montar
 _BUDGET_AVALIACAO = 5.0
 
 
+def _configurar(solver: cp_model.CpSolver) -> None:
+    """Parâmetros do solve de avaliação (não da geração).
+
+    Com a grade fixada não há busca: o tempo é presolve + propagação. O
+    portfólio paralelo do `num_workers = 8` da geração só adiciona overhead
+    (80 turmas: 1,0 s com 8 workers contra 0,26 s com 1 worker e probing,
+    simetria e linearização desligados, mesmo ótimo provado).
+    """
+    solver.parameters.max_time_in_seconds = _BUDGET_AVALIACAO
+    solver.parameters.num_workers = 1
+    solver.parameters.cp_model_probing_level = 0
+    solver.parameters.symmetry_level = 0
+    solver.parameters.linearization_level = 0
+
+
 class AvaliadorPreparado:
     """Modelo de uma instância montado uma vez, para avaliar várias grades.
 
     A montagem domina o custo de `avaliar` (≈1 s em 80 turmas); a edição
     manual avalia muitas grades da mesma instância, então o processo
     validador guarda um `AvaliadorPreparado` por instância e cada
-    `avaliar(grade)` só troca as assumptions que fixam a grade.
+    `avaliar(grade)` clona o modelo montado e só acrescenta as igualdades
+    que fixam a grade. Fixar por assumptions seria mais barato de montar,
+    mas desliga parte do presolve e o solve deixa de provar o ótimo no
+    budget (mesmo efeito descrito para a fase 1 do solver).
 
     Diferente do núcleo de conflito do solver (um subconjunto suficiente),
     aqui todas as regras hard violadas são listadas: cada literal de regra
@@ -48,8 +66,7 @@ class AvaliadorPreparado:
     se a grade quebra uma restrição estrutural (carga, turma ou professor em
     choque, slot fora do turno), só essas violações são devolvidas — com a
     grade fixada o modelo seria inviável, então regras do catálogo e custos
-    não são avaliados. Não é seguro para uso concorrente: o modelo é
-    compartilhado entre chamadas (o chamador serializa por instância).
+    não são avaliados.
     """
 
     def __init__(self, instancia: Instancia):
@@ -79,28 +96,34 @@ class AvaliadorPreparado:
             )
 
         ctx = self._ctx
-        ctx.model.clear_assumptions()
-        ctx.model.add_assumptions(_literais_da_grade(ctx, grade))
+        # o clone preserva os índices das variáveis, então `solver.value` das
+        # variáveis do contexto original lê a resposta do clone
+        modelo = ctx.model.clone()
+        for indice in _ocupados_da_grade(ctx, grade):
+            modelo.add(modelo.get_bool_var_from_proto_index(indice) == 1)
 
         solver = cp_model.CpSolver()
-        solver.parameters.max_time_in_seconds = _BUDGET_AVALIACAO
-        solver.parameters.num_workers = 8
-        status = solver.solve(ctx.model)
+        _configurar(solver)
+        status = solver.solve(modelo)
         if status == cp_model.MODEL_INVALID:
-            raise RuntimeError("Modelo CP-SAT inválido: " + ctx.model.validate())
+            raise RuntimeError("Modelo CP-SAT inválido: " + modelo.validate())
         if status != cp_model.OPTIMAL:
             raise RuntimeError(
                 f"Avaliação não concluída (status {solver.status_name(status)})."
             )
 
-        violacoes = sorted(
-            m for m, lit in ctx.assumptions.items() if solver.value(lit) == 0
-        )
+        valor = _leitor_de_valores(solver)
+        violacoes = sorted(m for m, lit in ctx.assumptions.items() if valor(lit) == 0)
         custos = []
         total = 0
         for regra_id, itens in ctx.custos.items():
-            custo = sum(peso * solver.value(var) for (var, peso, _, _) in itens)
-            detalhes = [desc for (var, _, desc, _) in itens if solver.value(var) > 0]
+            valores = [valor(var) for (var, _, _, _) in itens]
+            custo = sum(
+                peso * v for (_, peso, _, _), v in zip(itens, valores, strict=True)
+            )
+            detalhes = [
+                desc for (_, _, desc, _), v in zip(itens, valores, strict=True) if v > 0
+            ]
             custos.append(
                 CustoRegra(
                     regra_id=regra_id, tipo=itens[0][3], custo=custo, detalhes=detalhes
@@ -113,6 +136,23 @@ class AvaliadorPreparado:
             custo_total=total,
             tempo_segundos=time.monotonic() - inicio,
         )
+
+
+def _leitor_de_valores(solver: cp_model.CpSolver):
+    """Lê valores da solução direto do response por índice.
+
+    `solver.value` por variável custava ~0,3 s em 80 turmas (≈18 mil termos
+    de custo); variáveis simples são lidas do vetor da solução, e qualquer
+    outra expressão cai no `solver.value`.
+    """
+    solucao = list(solver.response_proto.solution)
+
+    def valor(expr) -> int:
+        if isinstance(expr, cp_model.IntVar) and expr.index >= 0:
+            return solucao[expr.index]
+        return int(solver.value(expr))
+
+    return valor
 
 
 def avaliar(instancia: Instancia, grade: list[AulaAlocada]) -> Avaliacao:
@@ -163,10 +203,11 @@ def _violacoes_estruturais(instancia: Instancia, grade: list[AulaAlocada]) -> li
     return sorted(erros)
 
 
-def _literais_da_grade(
-    ctx: ContextoModelo, grade: list[AulaAlocada]
-) -> list[cp_model.LiteralT]:
-    """Literais que fixam x[aula, slot] conforme a grade (para assumptions).
+def _ocupados_da_grade(ctx: ContextoModelo, grade: list[AulaAlocada]) -> list[int]:
+    """Índices no proto dos x[aula, slot] que valem 1 na grade.
+
+    Basta fixar esses: o `exactly_one` por aula do modelo zera os demais na
+    propagação (uma igualdade por aula, não uma por par aula × slot).
 
     As aulas de uma atribuição recebem os slots em ordem de posição no turno,
     a mesma ordem exigida pela quebra de simetria do modelo.
@@ -190,7 +231,4 @@ def _literais_da_grade(
         slot_da_aula[i] = ordenados[atrib.id][proximo[atrib.id]]
         proximo[atrib.id] += 1
 
-    return [
-        var if slot_da_aula[i] == slot_id else ~var
-        for (i, slot_id), var in ctx.x.items()
-    ]
+    return [ctx.x[(i, slot_id)].index for i, slot_id in slot_da_aula.items()]

@@ -177,14 +177,23 @@ escrita duas vezes. A fonte de verdade é única: a classe `Regra` em `regras/`.
   (`VALIDADOR_TOKEN`); o navegador nunca chama o validador. O app monta a
   `Instancia` com o mesmo código da geração (`lib/instancia.ts`) e envia a
   grade editada.
-- **Meta de latência:** p95 ≤ 1 s para 80 turmas (montagem + propagação),
-  medida no benchmark. Se não for atingida, o app aplica o movimento de forma
-  otimista e mostra o veredito quando chegar — sem regras em TS.
-  *Medição (17/10/2026, `bench/benchmark_avaliar.py`, 4 vCPU, 10 repetições):*
-  20 turmas mediana 0,65 s / p95 1,23 s; 40 turmas 0,96 s / 2,51 s; 80 turmas
-  1,75 s / 2,02 s — **meta não atingida**. O tempo está quase todo na
-  montagem do modelo (`_montar`: laços O(turmas × aulas) em `modelo.py`), não
-  no solve. Até otimizar, vale o fallback otimista acima.
+- **Meta de latência:** p95 ≤ 1 s para 80 turmas por edição, medida no
+  benchmark. Se não for atingida, o app aplica o movimento de forma otimista
+  e mostra o veredito quando chegar — sem regras em TS.
+- **Modelo preparado por instância:** a montagem do modelo é cara, então o
+  validador guarda um `AvaliadorPreparado(instancia)` por instância (chave:
+  hash do JSON da instância) e cada edição chama `.avaliar(grade)`, que clona
+  o modelo montado e fixa só os `x` ocupados. Fixar por assumptions foi
+  descartado: desliga parte do presolve e o solve deixou de provar o ótimo em
+  5 s. O solve de avaliação usa 1 worker e probing/simetria/linearização
+  desligados (sem busca, o portfólio de 8 workers só custa: 1,0 s → 0,26 s
+  em 80 turmas, mesmo ótimo).
+  *Medição (18/10/2026, `bench/benchmark_avaliar.py`, VM de 4 vCPU
+  compartilhada, 20 repetições):* `preparado` (por edição) mediana 0,16 s em
+  20 turmas, 0,26 s em 40 e ≈0,5 s em 80; o preparo (uma vez por instância)
+  leva 0,2 / 0,6 / 1,2–2,9 s. O p95 em 80 turmas oscilou entre 0,5 e 2,6 s
+  entre rodadas nesta VM — **mediana dentro da meta; p95 a confirmar no
+  hardware do Fly**. Antes (montagem a cada chamada): 1,75 s / p95 2,02 s.
 - **Persistência:** a Server Action revalida no servidor antes de gravar
   `aulas_alocadas` (nunca confia no veredito vindo do cliente); "forçar" grava
   mesmo com `violacoes_hard`, registrando-as no cenário.
