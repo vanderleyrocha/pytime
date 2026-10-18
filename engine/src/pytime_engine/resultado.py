@@ -1,6 +1,6 @@
 from typing import Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 
 class AulaAlocada(BaseModel):
@@ -18,6 +18,14 @@ class Celula(BaseModel):
     slot_id: str
     turma_id: str | None = None
     professor_id: str | None = None
+
+    @model_validator(mode="after")
+    def _um_eixo(self) -> "Celula":
+        if (self.turma_id is None) == (self.professor_id is None):
+            raise ValueError(
+                "Célula precisa de exatamente um: turma_id ou professor_id."
+            )
+        return self
 
 
 class Ocorrencia(BaseModel):

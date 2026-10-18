@@ -64,8 +64,9 @@ cenários nomeados/duplicados/oficial) implementada; 3B (exportações) e 3C
   nunca levanta exceção para instância válida, nunca muda o contrato de
   entrada/saída, só adiciona restrições/custos ao contexto.
 - **Interface Segregation**: uma regra conhece apenas `ContextoModelo`
-  (`x`, `occ_*`, `slots_da_turma`, `adicionar_custo`, `assumption`) — nunca o
-  solver, o resultado ou outras regras.
+  (`x`, `occ_*`, `slots_da_turma`, `adicionar_custo`, `assumption`) e os
+  localizadores/textos de `ocorrencias.py` (`aulas_em`, `janelas_em`,
+  `turmas_em`, `no_dia`...) — nunca o solver, o resultado ou outras regras.
 - **Dependency Inversion**: `solver.py` depende da abstração `Regra` via
   `REGISTRO`; jamais importa uma regra concreta.
 

@@ -1,14 +1,12 @@
 import time
-from collections.abc import Callable
-from typing import Any
 
 from ortools.sat.python import cp_model
 
 from .instancia import Instancia
 from .modelo import ContextoModelo
-from .ocorrencias import GradeResolvida
+from .ocorrencias import consolidar_custos
 from .regras import REGISTRO
-from .resultado import AulaAlocada, CustoRegra, Ocorrencia, Resultado
+from .resultado import AulaAlocada, Resultado
 
 _STATUS = {
     cp_model.OPTIMAL: "otimo",
@@ -52,45 +50,6 @@ def _montar(instancia: Instancia) -> tuple[ContextoModelo, list]:
         REGISTRO[config.tipo](config).aplicar(ctx)
     termos = [peso * var for itens in ctx.custos.values() for (var, peso, *_) in itens]
     return ctx, termos
-
-
-def _consolidar_custos(
-    ctx: ContextoModelo, valor: Callable[[Any], int], grade: list[AulaAlocada]
-) -> tuple[list[CustoRegra], int]:
-    """Custo por regra e as ocorrências (termos > 0) com suas células.
-
-    `valor` lê o valor de uma variável na solução; compartilhado entre
-    solver e avaliador para os dois reportarem do mesmo jeito.
-    """
-    resolvida = GradeResolvida(ctx.instancia, grade)
-    custos = []
-    total = 0
-    for regra_id, itens in ctx.custos.items():
-        custo = 0
-        ocorrencias = []
-        for var, peso, descricao, _, localizar in itens:
-            v = valor(var)
-            custo += peso * v
-            if v > 0:
-                ocorrencias.append(
-                    Ocorrencia(
-                        descricao=descricao,
-                        unidades=v,
-                        custo=peso * v,
-                        celulas=localizar(resolvida) if localizar else [],
-                    )
-                )
-        custos.append(
-            CustoRegra(
-                regra_id=regra_id,
-                tipo=itens[0][3],
-                custo=custo,
-                detalhes=[o.descricao for o in ocorrencias],
-                ocorrencias=ocorrencias,
-            )
-        )
-        total += custo
-    return custos, total
 
 
 def resolver(instancia: Instancia, on_progress=None) -> Resultado:
@@ -150,7 +109,7 @@ def resolver(instancia: Instancia, on_progress=None) -> Resultado:
         for (i, slot_id), var in ctx.x.items()
         if solver.Value(var) == 1
     ]
-    custos, total = _consolidar_custos(ctx, lambda var: int(solver.value(var)), grade)
+    custos, total = consolidar_custos(ctx, lambda var: int(solver.value(var)), grade)
     tempo = time.monotonic() - inicio
     return Resultado(
         status=_STATUS[status],

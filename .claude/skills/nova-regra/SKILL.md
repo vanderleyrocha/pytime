@@ -46,8 +46,18 @@ class RegraMinhaCoisa(Regra):
             var = ctx.model.new_bool_var(f"{self.config.id}_...")
             ctx.model.add(...)  # amarra var à violação
             ctx.adicionar_custo(self.config.id, self.tipo, var,
-                                self.config.peso, "descrição em português")
+                                self.config.peso,
+                                f"{turma.nome} – {disciplina}: ... {no_dia(dia)}",
+                                aulas_em(atrib_ids, slot_ids, "turma"))
 ```
+
+   O último argumento (`localizar`, de `pytime_engine.ocorrencias`) diz onde
+   a ocorrência aparece na grade exibida ao usuário: `aulas_em(...,
+   "turma"|"professor")` para aulas, `janelas_em` para horários vagos do
+   professor, `turmas_em` para horários inteiros. Sem lugar próprio na
+   grade, omita-o e explique na docstring (ver `compactacao.py`). A
+   descrição usa nomes (turma, disciplina, professor) e `no_dia`/
+   `rotulo_slot`, nunca ids.
 
 4. **Registrar**: adicionar em `regras/__init__.py`:
    `from . import <nome>  # noqa: F401`
@@ -68,6 +78,8 @@ class RegraMinhaCoisa(Regra):
   mesma regra ativas não podem colidir).
 - Teste soft que só verifica custo 0 não protege a fórmula — force uma
   violação determinística e compare o custo reportado com a contagem na grade.
+  Com `grade_fixa` (conftest) + `avaliar`, confira também as `ocorrencias`
+  (descrição e `celulas`).
 - Slot id do conftest tem formato `manha-d{dia}-h{ordem}` — útil para asserts.
 - Agrupamentos "por dia" devem usar chave `(turno_id, dia)` — professores
   circulam entre turnos.

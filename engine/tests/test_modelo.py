@@ -49,6 +49,13 @@ def test_adicionar_custo_e_assumption():
     ctx = ContextoModelo(instancia_minima())
     v = ctx.model.new_bool_var("p")
     ctx.adicionar_custo("r1", "janelas_professor", v, 3, "detalhe")
-    assert ctx.custos["r1"] == [(v, 3, "detalhe", "janelas_professor", None)]
+    [termo] = ctx.custos["r1"]
+    assert (termo.var, termo.peso, termo.descricao, termo.tipo) == (
+        v,
+        3,
+        "detalhe",
+        "janelas_professor",
+    )
+    assert termo.localizar is None
     lit = ctx.assumption("disponibilidade:ana")
     assert ctx.assumption("disponibilidade:ana") is lit  # idempotente

@@ -1,8 +1,17 @@
+import pytest
 from conftest import grade_fixa, instancia_minima
+from pydantic import ValidationError
 
 from pytime_engine import avaliar, resolver
 from pytime_engine.instancia import RegraConfig
-from pytime_engine.ocorrencias import GradeResolvida, aulas_em, janelas_em
+from pytime_engine.ocorrencias import (
+    GradeResolvida,
+    aulas_em,
+    do_dia,
+    janelas_em,
+    no_dia,
+    nome_dia,
+)
 from pytime_engine.resultado import Celula
 
 # mat 8, por 8, his 4 (instancia_minima): professores prof-mat/prof-por/prof-his
@@ -84,3 +93,17 @@ def test_resolver_tambem_preenche_ocorrencias_coerentes_com_o_custo():
     assert custo.ocorrencias
     assert sum(o.custo for o in custo.ocorrencias) == custo.custo == 6
     assert all(o.celulas for o in custo.ocorrencias)
+
+
+def test_nomes_de_dia_com_artigo_e_fora_da_semana():
+    assert (no_dia(0), do_dia(4)) == ("na segunda", "da sexta")
+    assert (no_dia(5), do_dia(6)) == ("no sábado", "do domingo")
+    assert nome_dia(7) == "dia 8"
+
+
+@pytest.mark.parametrize(
+    "eixos", [{}, {"turma_id": "t1", "professor_id": "p1"}], ids=["nenhum", "dois"]
+)
+def test_celula_exige_exatamente_um_eixo(eixos):
+    with pytest.raises(ValidationError, match="turma_id ou professor_id"):
+        Celula(slot_id="s1", **eixos)
