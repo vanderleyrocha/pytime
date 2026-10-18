@@ -2,7 +2,12 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { criarClienteServidor } from "@/lib/supabase/cliente-servidor";
 import { obterUnidadeAtiva } from "@/lib/unidade-ativa";
-import type { InstanciaMotor } from "@/lib/instancia";
+import {
+  buscarDadosUnidade,
+  montarInstancia,
+  type InstanciaMotor,
+} from "@/lib/instancia";
+import { impressaoInstancia } from "@/lib/edicao/snapshot";
 import { custoExibido, type Avaliacao } from "@/lib/edicao/avaliacao";
 import type { Excecao } from "@/lib/edicao/acoes";
 import { traduzirNucleo } from "@/lib/nucleo";
@@ -148,6 +153,21 @@ export default async function PaginaGrade({
   const avaliacao = (cenario.avaliacao as Avaliacao | null) ?? null;
   const excecoes = (cenario.excecoes as Excecao[] | null) ?? [];
   const podeEditar = perfil.papel !== "professor";
+  // A grade é avaliada contra o snapshot da geração: avisa quando os
+  // cadastros mudaram depois dela (inclusive por reimportação do escolajba).
+  let cadastrosMudaram = false;
+  if (instancia) {
+    try {
+      const atual = montarInstancia(
+        await buscarDadosUnidade(supabase, perfil.unidade_id),
+        instancia.budget_segundos,
+      );
+      cadastrosMudaram =
+        impressaoInstancia(atual) !== impressaoInstancia(instancia);
+    } catch {
+      // sem o aviso se a leitura falhar; o erro de leitura já aparece acima
+    }
+  }
 
   const nome = (l: { id: string; nome: string }[] | null) =>
     Object.fromEntries((l ?? []).map((x) => [x.id, x.nome]));
@@ -250,6 +270,13 @@ export default async function PaginaGrade({
       {erroLeitura && (
         <p role="alert" className="text-sm text-red-700">
           Parte dos dados do cenário não pôde ser lida. Recarregue a página.
+        </p>
+      )}
+      {cadastrosMudaram && (
+        <p className="rounded border border-amber-400 bg-amber-50 p-3 text-sm">
+          Os cadastros mudaram desde a geração deste cenário. Ajustes são
+          avaliados com os dados da época da geração; gere um novo horário para
+          incorporar as mudanças.
         </p>
       )}
       {custo && (
