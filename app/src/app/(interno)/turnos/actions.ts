@@ -18,27 +18,15 @@ export async function salvarGrade(
   if (!grade.success) return { erro: grade.error.issues[0].message };
 
   const supabase = await criarClienteServidor();
-  // Substitui a grade inteira do turno (disponibilidades dos slots
-  // antigos caem em cascata — avisado na UI antes de salvar).
-  const { error: erroApagar } = await supabase
-    .from("slots")
-    .delete()
-    .eq("turno_id", turnoId)
-    .eq("unidade_id", perfil.unidade_id);
-  if (erroApagar) return { erro: "Não foi possível regravar a grade." };
-
-  const linhas = grade.data.dias.flatMap((dia) =>
-    grade.data.horarios.map((h, ordem) => ({
-      unidade_id: perfil.unidade_id,
-      turno_id: turnoId,
-      dia,
-      ordem,
-      hora_inicio: h.hora_inicio,
-      hora_fim: h.hora_fim,
-    })),
-  );
-  const { error } = await supabase.from("slots").insert(linhas);
-  if (error) return { erro: "Não foi possível salvar a grade." };
+  // Substitui a grade inteira do turno numa transação (disponibilidades dos
+  // slots antigos caem em cascata — avisado na UI antes de salvar).
+  const { error } = await supabase.rpc("salvar_grade_turno", {
+    p_turno: turnoId,
+    p_dias: grade.data.dias,
+    p_horarios: grade.data.horarios,
+  });
+  if (error)
+    return { erro: "Não foi possível salvar a grade. Nada foi alterado." };
   revalidatePath("/turnos");
   return { sucesso: true };
 }
