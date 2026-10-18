@@ -371,6 +371,7 @@ export function Editor(p: PropsEditor) {
 
       <aside
         className="flex min-w-72 flex-col gap-3 text-sm"
+        aria-label="Veredito do motor"
         aria-live="polite"
       >
         <h2 className="font-semibold">Veredito do motor</h2>
