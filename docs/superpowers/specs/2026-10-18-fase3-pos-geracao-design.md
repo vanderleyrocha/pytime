@@ -2,6 +2,11 @@
 
 Data: 2026-10-18
 Status: **aprovado** em 18/10/2026 (decisões da §9 respondidas pelo usuário)
+
+3A (edição manual): implementada no PR vanderleyrocha/pytime#4 — falta
+merge, migrations/envs de produção e a medição do p95 em produção
+(`docs/deploy.md`, "Primeira subida da Fase 3A").
+
 Spec master: `2026-08-30-pytime-design.md` (§6 "Edição manual", "Cenários" e
 "Portal do professor" são a base desta fase)
 Pré-requisitos: Fase 2 concluída; motor com `avaliar()` /

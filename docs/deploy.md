@@ -16,7 +16,10 @@ Três peças: Supabase (banco/auth), Vercel (app Next.js), Fly.io (worker).
 
 - Root directory: `app/`.
 - Envs (production): `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`,
-  `SUPABASE_SERVICE_ROLE_KEY`, `NEXT_PUBLIC_SITE_URL`.
+  `SUPABASE_SERVICE_ROLE_KEY`, `NEXT_PUBLIC_SITE_URL`, `VALIDADOR_URL` e
+  `VALIDADOR_TOKEN` (edição manual, Fase 3A). `SUPABASE_SERVICE_ROLE_KEY` e
+  `VALIDADOR_TOKEN` são server-only: **nunca** com prefixo `NEXT_PUBLIC_`.
+- A integração Git da Vercel gera um preview por PR (Root Directory = `app`).
 - Primeira vez:
 
 ```bash
@@ -27,6 +30,8 @@ vercel env add NEXT_PUBLIC_SUPABASE_URL production
 vercel env add NEXT_PUBLIC_SUPABASE_ANON_KEY production
 vercel env add SUPABASE_SERVICE_ROLE_KEY production
 vercel env add NEXT_PUBLIC_SITE_URL production   # https://<dominio>.vercel.app
+vercel env add VALIDADOR_URL production          # https://pytime-worker.fly.dev
+vercel env add VALIDADOR_TOKEN production        # o mesmo secret do Fly
 vercel deploy --prod
 ```
 
@@ -51,8 +56,9 @@ fly secrets set --app pytime-worker VALIDADOR_TOKEN="$(openssl rand -hex 32)"
 fly deploy --remote-only
 ```
 
-- O mesmo `VALIDADOR_TOKEN` vai para a Vercel (com `VALIDADOR_URL`) quando a
-  tela de edição manual entrar; o navegador nunca recebe o token.
+- O mesmo `VALIDADOR_TOKEN` vai para a Vercel (com `VALIDADOR_URL`, §2): só
+  as Server Actions do app chamam o validador; o navegador nunca recebe o
+  token.
 - Smoke do validador: `curl https://pytime-worker.fly.dev/saude` → `{"ok": true}`;
   sem `Authorization: Bearer <token>`, `POST /avaliar` responde 401.
 - No Fly o host direto funciona por IPv6; se falhar, usar o pooler session
@@ -97,8 +103,16 @@ nunca ligue um worker do Fly contra o staging.
    *Actions* → *New repository secret*, nome `SUPABASE_DB_URL_STAGING`, valor =
    a URL do **session pooler**. Os runners do GitHub não têm IPv6, e o host
    direto `db.<ref>.supabase.co` só responde por IPv6.
-5. **Manter em dia**: toda migration nova vai também para o staging (passo 2)
-   antes do PR que depende dela. O projeto gratuito **pausa após ~7 dias sem
+5. **Secrets do E2E** (mesmo caminho do passo 4), todos do **staging**:
+   `SUPABASE_URL_STAGING` (*Project URL*, `https://<ref-staging>.supabase.co`),
+   `SUPABASE_ANON_KEY_STAGING` (chave pública/publishable) e
+   `SUPABASE_SERVICE_ROLE_KEY_STAGING` (chave secreta). O job
+   `staging-chaves` confere as três; o job `e2e` (Playwright) cria uma
+   escola descartável via service_role, sobe um validador local com token
+   descartável e apaga a massa no fim. Sem os secrets, o E2E é pulado.
+6. **Manter em dia**: o job `worker` do CI aplica no staging as migrations
+   do branch (`supabase db push --db-url`) antes dos testes; o passo 2 só é
+   preciso fora do CI. O projeto gratuito **pausa após ~7 dias sem
    uso**; se o CI falhar com erro de conexão, reative no dashboard.
 
 ## Rotina de atualização
@@ -109,3 +123,18 @@ nunca ligue um worker do Fly contra o staging.
 3. App: `cd app && vercel deploy --prod`.
 4. Worker, validador ou engine mudou? `fly deploy --remote-only` (atualiza os
    dois processos).
+
+### Primeira subida da Fase 3A (edição manual)
+
+Ordem obrigatória — as Actions novas usam colunas e RPCs das migrations:
+
+1. Produção: `npx supabase db push` (aplica `20261018060000_fase3a_edicao`,
+   `20261018070000_policies_unidades_com_papel` e
+   `20261018080000_rpcs_cadastros`; o staging já as recebeu pelo CI).
+2. Vercel: `vercel env add VALIDADOR_URL production` e
+   `vercel env add VALIDADOR_TOKEN production` (§2).
+3. Merge do PR na `master` → `vercel deploy --prod` (ou deploy automático).
+4. `fly deploy --remote-only` (worker grava a avaliação exata pós-geração).
+5. Smoke: gerar → abrir o cenário → custo "avaliado" → Editar → trocar →
+   veredito → Salvar → Duplicar → Marcar como oficial → exportar para o
+   escolajba (o arquivo traz `origem.oficial = true` e a troca feita).

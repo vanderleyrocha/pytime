@@ -7,8 +7,10 @@ SaaS de geração automática de horários escolares (educação básica brasile
 
 Specs vinculantes em `docs/superpowers/specs/` (design master + spec por fase).
 Fases 1 (motor) e 2 (app Next.js + Supabase + worker Fly.io) concluídas;
-Fase 3 (pós-geração: ajustes manuais, cenário oficial, exportações) é a
-próxima.
+Fase 3 (pós-geração) em andamento: 3A (edição manual com veredito do motor,
+cenários nomeados/duplicados/oficial) implementada; 3B (exportações) e 3C
+(e-mail/convites) a seguir — ver
+`docs/superpowers/specs/2026-10-18-fase3-pos-geracao-design.md`.
 
 ## Stack
 
@@ -97,6 +99,9 @@ próxima.
 
 ```bash
 cd app && npm run teste && npm run lint && npm run build   # app Next.js
+# E2E (Playwright) contra o STAGING — nunca produção; exige as envs do
+#   staging + VALIDADOR_URL/VALIDADOR_TOKEN de um validador local:
+cd app && npx playwright test
 # RLS via pgTAP (runner próprio; Docker não é usado):
 #   defina SUPABASE_DB_URL (ver .env.example) e rode:
 python supabase/tests/rodar_testes.py
