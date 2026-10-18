@@ -142,3 +142,44 @@ def test_processar_instancia_invalida_vira_erro(conexao, db_url, unidade_teste):
         ger = cur.fetchone()
     assert ger["status"] == "erro"
     assert "Instância inválida" in ger["detalhe_erro"]
+
+
+def _processar_e_ler_cenario(conexao, db_url, unidade_id: str, instancia: dict):
+    geracao_id = _enfileirar(conexao, unidade_id, instancia)
+    job = fila.reivindicar(conexao)
+    with fila.conectar(db_url) as conexao_hb:
+        executor.processar(conexao, conexao_hb, job, intervalo_heartbeat=1.0)
+    with conexao.cursor() as cur:
+        cur.execute(
+            "select g.status, c.avaliacao, c.avaliado_em from geracoes g"
+            " join cenarios c on c.geracao_id = g.id where g.id = %s",
+            (geracao_id,),
+        )
+        return cur.fetchone()
+
+
+def test_concluida_grava_avaliacao_exata_do_cenario(conexao, db_url, unidade_teste):
+    ids = _montar_esqueleto(conexao, unidade_teste)
+    linha = _processar_e_ler_cenario(
+        conexao, db_url, unidade_teste, _instancia_minima(ids)
+    )
+    assert linha["status"] == "concluida"
+    assert linha["avaliacao"]["violacoes_hard"] == []
+    assert linha["avaliacao"]["custo_total"] == 0  # instância sem regras soft
+    assert linha["avaliado_em"] is not None
+
+
+def test_falha_na_avaliacao_nao_derruba_a_geracao(
+    conexao, db_url, unidade_teste, monkeypatch
+):
+    class Quebrado:
+        def __init__(self, *_args, **_kwargs):
+            raise RuntimeError("motor indisponível")
+
+    monkeypatch.setattr(executor, "AvaliadorPreparado", Quebrado)
+    ids = _montar_esqueleto(conexao, unidade_teste)
+    linha = _processar_e_ler_cenario(
+        conexao, db_url, unidade_teste, _instancia_minima(ids)
+    )
+    assert linha["status"] == "concluida"
+    assert linha["avaliacao"] is None

@@ -4,7 +4,8 @@ import threading
 from typing import Any
 
 import psycopg
-from pytime_engine import Instancia, resolver
+from pytime_engine import AvaliadorPreparado, Instancia, resolver
+from pytime_engine.resultado import AulaAlocada
 
 from . import fila
 
@@ -75,6 +76,7 @@ def processar(
                 " resultado descartado."
             )
             return
+        _avaliar_cenario(conn, cenario_id, instancia, resultado.grade)
     elif resultado.status == "inviavel":
         fila.gravar_inviavel(conn, geracao_id, dados, resultado.nucleo_conflito)
     else:  # sem_solucao_no_budget
@@ -83,3 +85,22 @@ def processar(
             geracao_id,
             "Sem solução dentro do tempo — tente aumentar o budget (máx. 600 s).",
         )
+
+
+def _avaliar_cenario(
+    conn: psycopg.Connection,
+    cenario_id: str,
+    instancia: Instancia,
+    grade: list[AulaAlocada],
+) -> None:
+    """Grava a avaliação exata do cenário recém-gerado.
+
+    O custo do `Resultado` superestima em soluções `viavel` (lê folga das
+    variáveis de custo); a UI mostra o custo avaliado. Best-effort: se a
+    avaliação falhar, a geração continua concluída e a UI usa o fallback.
+    """
+    try:
+        avaliacao = AvaliadorPreparado(instancia).avaliar(grade)
+        fila.gravar_avaliacao(conn, cenario_id, avaliacao.model_dump())
+    except Exception as excecao:  # noqa: BLE001 - avaliação é best-effort
+        print(f"Avaliação do cenário {cenario_id} falhou: {excecao}", flush=True)
