@@ -16,6 +16,22 @@ const esquemaAvaliacao = z.object({
       tipo: z.string(),
       custo: z.number(),
       detalhes: z.array(z.string()),
+      ocorrencias: z
+        .array(
+          z.object({
+            descricao: z.string(),
+            unidades: z.number(),
+            custo: z.number(),
+            celulas: z.array(
+              z.object({
+                slot_id: z.string(),
+                turma_id: z.string().nullish(),
+                professor_id: z.string().nullish(),
+              }),
+            ),
+          }),
+        )
+        .optional(),
     }),
   ),
   custo_total: z.number(),
