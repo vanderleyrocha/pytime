@@ -10,7 +10,11 @@ import {
 export default async function PaginaAtribuicoes({
   searchParams,
 }: {
-  searchParams: Promise<{ turma?: string; professor?: string }>;
+  searchParams: Promise<{
+    turma?: string;
+    professor?: string;
+    disciplina?: string;
+  }>;
 }) {
   const filtros = await searchParams;
   const perfil = (await obterUnidadeAtiva())!;
@@ -45,7 +49,15 @@ export default async function PaginaAtribuicoes({
   if (filtros.professor) {
     consulta = consulta.eq("professor_id", filtros.professor);
   }
+  if (filtros.disciplina) {
+    consulta = consulta.eq("disciplina_id", filtros.disciplina);
+  }
   const { data: atribuicoes } = await consulta;
+  const totais = {
+    turmas: new Set((atribuicoes ?? []).map((a) => a.turma_id)).size,
+    carga: (atribuicoes ?? []).reduce((t, a) => t + a.carga_semanal, 0),
+    geminadas: (atribuicoes ?? []).reduce((t, a) => t + a.geminadas, 0),
+  };
 
   const nomes = (lista: { id: string; nome: string }[] | null) =>
     Object.fromEntries((lista ?? []).map((x) => [x.id, x.nome]));
@@ -115,6 +127,17 @@ export default async function PaginaAtribuicoes({
             ))}
           </select>
         </div>
+        <div>
+          <label htmlFor="disciplina" className="block font-medium">Disciplina</label>
+          <select id="disciplina" name="disciplina"
+            defaultValue={filtros.disciplina ?? ""}
+            className="h-9 rounded-md border px-2">
+            <option value="">Todas</option>
+            {(disciplinas ?? []).map((d) => (
+              <option key={d.id} value={d.id}>{d.nome}</option>
+            ))}
+          </select>
+        </div>
         <button type="submit" className="h-9 rounded-md border px-3">
           Filtrar
         </button>
@@ -124,10 +147,10 @@ export default async function PaginaAtribuicoes({
           <tr className="border-b text-left">
             <th className="py-2">Professor</th>
             <th>Disciplina</th>
-            <th>Turma</th>
-            <th>Carga</th>
-            <th>Geminadas</th>
-            <th className="w-48"></th>
+            <th className="text-center">Turma</th>
+            <th className="text-center">Carga</th>
+            <th className="text-center">Geminadas</th>
+            <th className="w-48">Ações</th>
           </tr>
         </thead>
         <tbody>
@@ -147,9 +170,9 @@ export default async function PaginaAtribuicoes({
               <tr key={a.id} className="border-b">
                 <td className="py-2">{nomeProfessor[a.professor_id]}</td>
                 <td>{nomeDisciplina[a.disciplina_id]}</td>
-                <td>{nomeTurma[a.turma_id]}</td>
-                <td>{a.carga_semanal}</td>
-                <td>{a.geminadas}</td>
+                <td className="text-center">{nomeTurma[a.turma_id]}</td>
+                <td className="text-center">{a.carga_semanal}</td>
+                <td className="text-center">{a.geminadas}</td>
                 <td className="flex gap-2 py-2">
                   <FormularioAtribuicao
                     professores={opcoes(professores)}
@@ -164,6 +187,17 @@ export default async function PaginaAtribuicoes({
             );
           })}
         </tbody>
+        <tfoot>
+          <tr className="border-t-2 font-medium">
+            <td className="py-2" colSpan={2}>Total</td>
+            <td className="text-center">
+              {totais.turmas} {totais.turmas === 1 ? "turma" : "turmas"}
+            </td>
+            <td className="text-center">{totais.carga}</td>
+            <td className="text-center">{totais.geminadas}</td>
+            <td></td>
+          </tr>
+        </tfoot>
       </table>
     </div>
   );
