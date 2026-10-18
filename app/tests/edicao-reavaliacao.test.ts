@@ -9,7 +9,11 @@ import type { Avaliacao } from "@/lib/edicao/avaliacao";
 import { reavaliarSeDesatualizada } from "@/lib/edicao/reavaliacao";
 import type { InstanciaMotor } from "@/lib/instancia";
 
-const instancia = { turnos: [], slots: [] } as unknown as InstanciaMotor;
+const instancia = {
+  turnos: [],
+  slots: [],
+  atribuicoes: [{ id: "a1", carga_semanal: 1 }],
+} as unknown as InstanciaMotor;
 const aulas = [{ atribuicao_id: "a1", slot_id: "s1" }];
 const antiga: Avaliacao = {
   violacoes_hard: [],
@@ -78,5 +82,36 @@ describe("reavaliarSeDesatualizada", () => {
       await reavaliarSeDesatualizada(antiga, null, aulas, { avaliar }),
     ).toBe(antiga);
     expect(avaliar).not.toHaveBeenCalled();
+  });
+
+  it("grade lida incompleta (limite de linhas) não é avaliada", async () => {
+    const avaliar = vi.fn();
+    const instancia2 = {
+      ...instancia,
+      atribuicoes: [{ id: "a1", carga_semanal: 2 }],
+    } as unknown as InstanciaMotor;
+    expect(
+      await reavaliarSeDesatualizada(antiga, instancia2, aulas, { avaliar }),
+    ).toBe(antiga);
+    expect(avaliar).not.toHaveBeenCalled();
+  });
+
+  it("descarta e não grava avaliação com violação estrutural", async () => {
+    const quebrada: Avaliacao = {
+      ...nova,
+      violacoes_hard: ["estrutural:carga:a1"],
+      custos: [],
+    };
+    const avaliar = vi
+      .fn()
+      .mockResolvedValue({ ok: true, avaliacao: quebrada });
+    const gravar = vi.fn();
+    expect(
+      await reavaliarSeDesatualizada(antiga, instancia, aulas, {
+        avaliar,
+        gravar,
+      }),
+    ).toBe(antiga);
+    expect(gravar).not.toHaveBeenCalled();
   });
 });
