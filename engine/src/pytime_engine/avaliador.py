@@ -57,7 +57,7 @@ class AvaliadorPreparado:
     forçados a 0.
 
     Premissa: nenhuma variável de custo soft depende de um literal hard
-    (vale para as 10 regras do catálogo). Se uma regra futura compartilhar
+    (vale para todas as regras do catálogo atual). Se uma regra futura compartilhar
     variável entre a parte hard e a soft, o solver poderia desligar um
     literal só para baratear o soft; aí o termo dos desligados precisa de
     peso lexicográfico.

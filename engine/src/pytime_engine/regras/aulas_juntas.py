@@ -54,6 +54,12 @@ class RegraAulasJuntas(Regra):
                             ctx.model.add(inicio >= occ[p] - occ[p - 1])
                         else:
                             ctx.model.add(inicio >= occ[p])
+                        if not self.config.hard:
+                            # amarrado por cima: o custo é exato mesmo em
+                            # solução só viável (sem prova de ótimo)
+                            ctx.model.add(inicio <= occ[p])
+                            if anterior_colado:
+                                ctx.model.add(inicio <= 1 - occ[p - 1])
                         comecos.append(inicio)
                     if self.config.hard:
                         lit = ctx.assumption(f"aulas_juntas:{turma.id}")
@@ -70,6 +76,7 @@ class RegraAulasJuntas(Regra):
                             self.tipo,
                             extra,
                             self.config.peso,
-                            f"{turma.nome}: {nomes.get(disciplina_id)} separada"
+                            f"{turma.nome}: {nomes.get(disciplina_id, disciplina_id)}"
+                            " separada"
                             f" no dia {dia}",
                         )

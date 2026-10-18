@@ -72,28 +72,39 @@ def test_aulas_juntas_soft_conta_os_blocos_extras():
 
 
 def test_aulas_juntas_considera_a_disciplina_mesmo_com_dois_professores():
-    # mat dividida entre dois professores na mesma turma: as aulas de mat do
-    # dia continuam tendo de ficar juntas.
-    inst = instancia_minima(
-        dias=1,
-        por_dia=3,
-        cargas={"mat": 2, "por": 1},
-        regras=[RegraConfig(id="r-jun", tipo="aulas_juntas", hard=True)],
+    # mat dividida entre dois professores (1 aula cada) na mesma turma; por
+    # só pode no 2º horário, então mat fica no 1º e no 3º — separada. As
+    # atribuições de mat contam juntas: com a regra, a instância é inviável.
+    def montar(regras):
+        inst = instancia_minima(
+            dias=1,
+            por_dia=3,
+            cargas={"mat": 2, "por": 1},
+            disponibilidade={
+                "prof-por": {
+                    "manha-d0-h0": "indisponivel",
+                    "manha-d0-h2": "indisponivel",
+                }
+            },
+            regras=regras,
+        )
+        a_mat = inst.atribuicoes[0]
+        inst.atribuicoes[0] = a_mat.model_copy(update={"carga_semanal": 1})
+        inst.atribuicoes.append(
+            a_mat.model_copy(
+                update={"id": "a-mat2", "professor_id": "prof-mat2", "carga_semanal": 1}
+            )
+        )
+        inst.professores.append(
+            inst.professores[0].model_copy(update={"id": "prof-mat2", "nome": "p2"})
+        )
+        return inst
+
+    assert resolver(montar([DISPONIBILIDADE])).status == "otimo"
+    r = resolver(
+        montar(
+            [DISPONIBILIDADE, RegraConfig(id="r-jun", tipo="aulas_juntas", hard=True)]
+        )
     )
-    a_mat = inst.atribuicoes[0]
-    outra = a_mat.model_copy(
-        update={"id": "a-mat2", "professor_id": "prof-mat2", "carga_semanal": 1}
-    )
-    inst.atribuicoes[0] = a_mat.model_copy(update={"carga_semanal": 1})
-    inst.atribuicoes.append(outra)
-    inst.professores.append(
-        inst.professores[0].model_copy(update={"id": "prof-mat2", "nome": "p2"})
-    )
-    r = resolver(inst)
-    assert r.status == "otimo"
-    ordens_mat = sorted(
-        int(a.slot_id.split("-")[2][1:])
-        for a in r.grade
-        if a.atribuicao_id in ("a-mat", "a-mat2")
-    )
-    assert ordens_mat[1] == ordens_mat[0] + 1
+    assert r.status == "inviavel"
+    assert "aulas_juntas:t1" in r.nucleo_conflito

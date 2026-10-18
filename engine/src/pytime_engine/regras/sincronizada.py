@@ -14,7 +14,8 @@ class RegraDisciplinaSincronizada(Regra):
     está numa turma e não na de referência (ou o contrário).
 
     Limitações: só alinha turmas do mesmo turno (turnos diferentes têm
-    horários distintos); cargas diferentes entre as turmas tornam a versão
+    horários distintos); cargas diferentes entre as turmas, ou o mesmo
+    professor dando a disciplina em duas turmas do turno, tornam a versão
     hard inviável. Para as aulas ficarem juntas, use as geminadas da
     atribuição ou a regra "aulas_juntas".
     """
@@ -65,11 +66,19 @@ class RegraDisciplinaSincronizada(Regra):
                         ctx.model.add(
                             diferente >= occ(referencia, s.id) - occ(turma_id, s.id)
                         )
+                        # amarrado por cima: custo exato em qualquer solução
+                        ctx.model.add(
+                            diferente <= occ(turma_id, s.id) + occ(referencia, s.id)
+                        )
+                        ctx.model.add(
+                            diferente <= 2 - occ(turma_id, s.id) - occ(referencia, s.id)
+                        )
                         ctx.adicionar_custo(
                             self.config.id,
                             self.tipo,
                             diferente,
                             self.config.peso,
                             f"{nome_disciplina} fora de sincronia em"
-                            f" {nome_turma[turma_id]}",
+                            f" {nome_turma[turma_id]} (dia {s.dia},"
+                            f" {s.ordem + 1}º horário)",
                         )
