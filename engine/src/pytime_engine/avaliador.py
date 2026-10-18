@@ -67,10 +67,16 @@ class AvaliadorPreparado:
     choque, slot fora do turno), só essas violações são devolvidas — com a
     grade fixada o modelo seria inviável, então regras do catálogo e custos
     não são avaliados.
+
+    Concorrência: cada `avaliar` clona o modelo e usa um solver próprio, mas
+    a segurança de clonar o mesmo `CpModel` de várias threads não é garantida
+    pelo OR-Tools; o validador deve serializar as chamadas por instância.
     """
 
     def __init__(self, instancia: Instancia):
-        self.instancia = instancia
+        # cópia própria: o modelo montado e a checagem estrutural precisam ver
+        # a mesma instância, mesmo que o chamador mute a original depois
+        self.instancia = instancia = instancia.model_copy(deep=True)
         self._erros_instancia = [
             f"instancia:{e}"
             for e in instancia.validar_referencias() or instancia.validar_matriz_cheia()
