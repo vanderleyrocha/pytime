@@ -436,6 +436,13 @@ para células clicáveis).
 
 ### Task 10: Backlog — policies com `(select tenho_papel(...))`
 
+> **Executado diferente (18/10):** `(select tenho_papel(unidade_id, ...))`
+> não vira initplan, porque recebe a coluna da linha e a subconsulta
+> continua correlacionada. A migration cria `unidades_com_papel(variadic
+> papel[])` (sem argumento de linha, como `minhas_unidades()`) e as policies
+> usam `unidade_id in (select unidades_com_papel(...))`. O `EXPLAIN` mostra
+> `hashed SubPlan` (uma avaliação por consulta). pgTAP `0010_policies`.
+
 **Arquivo:** `supabase/migrations/<ts>_policies_select.sql`.
 
 O Postgres avalia `tenho_papel(...)` por linha; envolvido em `(select …)`
