@@ -66,6 +66,71 @@ describe("traduzirNucleo", () => {
     expect(texto).toContain("Ana Souza");
   });
 
+  it("geminadas acima do que a carga comporta: diz o máximo e como resolver", () => {
+    const [texto] = traduzirNucleo(["geminadas:a1"], instancia);
+    expect(texto).toContain("carga semanal de 1 aula");
+    expect(texto).toContain("Como resolver:");
+    expect(texto).toMatch(/Geminadas \(pares\).*0/);
+  });
+
+  it("geminadas sem horários seguidos livres do professor: aponta a disponibilidade", () => {
+    const comSlots: InstanciaMotor = {
+      ...instancia,
+      slots: [
+        { id: "s1", dia: 0, ordem: 0, turno_id: "tn1" },
+        { id: "s2", dia: 0, ordem: 1, turno_id: "tn1" },
+        { id: "s3", dia: 1, ordem: 0, turno_id: "tn1" },
+        { id: "s4", dia: 1, ordem: 1, turno_id: "tn1" },
+      ],
+      professores: [
+        {
+          id: "p1",
+          nome: "Ana Souza",
+          disponibilidade: { s3: "indisponivel" },
+        },
+      ],
+      atribuicoes: [
+        { ...instancia.atribuicoes[0], carga_semanal: 4, geminadas: 2 },
+      ],
+    };
+    const [texto] = traduzirNucleo(["geminadas:a1"], comSlots);
+    expect(texto).toContain("Ana Souza");
+    expect(texto).toContain("só tem 1 par de horários seguidos disponível");
+    expect(texto).toContain("Como resolver:");
+    expect(texto).toContain("disponibilidade");
+  });
+
+  it("geminadas sem causa óbvia: lista o que conferir", () => {
+    const folgada: InstanciaMotor = {
+      ...instancia,
+      slots: [
+        { id: "s1", dia: 0, ordem: 0, turno_id: "tn1" },
+        { id: "s2", dia: 0, ordem: 1, turno_id: "tn1" },
+      ],
+      atribuicoes: [
+        { ...instancia.atribuicoes[0], carga_semanal: 2, geminadas: 1 },
+      ],
+    };
+    const [texto] = traduzirNucleo(["geminadas:a1"], folgada);
+    expect(texto).toContain("Como resolver:");
+    expect(texto).toContain("outras turmas");
+  });
+
+  it("todo motivo de regra traz uma sugestão de como resolver", () => {
+    const textos = traduzirNucleo(
+      [
+        "disponibilidade:p1",
+        "recurso:r1",
+        "nao_mesmo_dia:g1",
+        "ultimo_horario:g2",
+        "aulas_juntas:t1",
+        "disciplina_sincronizada:g3",
+      ],
+      instancia,
+    );
+    for (const t of textos) expect(t).toContain("Como resolver:");
+  });
+
   it("traduz recurso pelo nome", () => {
     const [texto] = traduzirNucleo(["recurso:r1"], instancia);
     expect(texto).toContain("Laboratório");
@@ -118,7 +183,7 @@ describe("traduzirNucleo", () => {
 
   it("mantém o motivo quando o id não existe na instância", () => {
     expect(traduzirNucleo(["disponibilidade:xyz"], instancia)).toEqual([
-      "Disponibilidade de um professor removido (xyz): os horários indisponíveis conflitam com as aulas atribuídas.",
+      "Disponibilidade de um professor removido (xyz): os horários indisponíveis conflitam com as aulas atribuídas. Como resolver: libere mais horários na disponibilidade do professor ou reduza a carga dele.",
     ]);
   });
 
@@ -171,6 +236,13 @@ describe("traduzirViolacoes (edição manual)", () => {
     expect(v.texto).toBe(
       "Turma 6º A: carga total 3 difere do número de slots do turno (2).",
     );
+  });
+
+  it("geminadas na edição manual sugere mover as aulas para horários seguidos", () => {
+    const [v] = traduzirViolacoes(["geminadas:a1"], instancia);
+    expect(v.texto).toContain("Matemática em 6º A (Ana Souza)");
+    expect(v.texto).toContain("horários seguidos");
+    expect(v.texto).not.toContain("carga semanal");
   });
 
   it("motivos de regra seguem a tradução do núcleo, sem slot", () => {

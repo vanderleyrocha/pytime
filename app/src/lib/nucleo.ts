@@ -50,10 +50,80 @@ function descreverAtribuicao(
   return `${disc} em ${turma} (${prof})`;
 }
 
+/**
+ * Onde o motivo aparece: na geração (o cadastro precisa mudar) ou na edição
+ * manual (basta mover aulas na grade) — muda a sugestão de como resolver.
+ */
+type Contexto = "geracao" | "edicao";
+
+function plural(n: number, singular: string, varios: string): string {
+  return `${n} ${n === 1 ? singular : varios}`;
+}
+
+/**
+ * Máximo de pares disjuntos de horários seguidos da turma em que o professor
+ * não está indisponível (cota superior dos pares geminados possíveis).
+ */
+function paresLivres(
+  atribuicao: InstanciaMotor["atribuicoes"][number],
+  instancia: InstanciaMotor,
+): number {
+  const turma = instancia.turmas.find((t) => t.id === atribuicao.turma_id);
+  const prof = instancia.professores.find(
+    (p) => p.id === atribuicao.professor_id,
+  );
+  if (!turma) return 0;
+  const livre = (slotId: string) =>
+    prof?.disponibilidade[slotId] !== "indisponivel";
+  const slots = instancia.slots
+    .filter((s) => s.turno_id === turma.turno_id)
+    .sort((a, b) => a.dia - b.dia || a.ordem - b.ordem);
+  let pares = 0;
+  for (let i = 0; i + 1 < slots.length; i++) {
+    const [s1, s2] = [slots[i], slots[i + 1]];
+    if (s1.dia !== s2.dia || s2.ordem !== s1.ordem + 1) continue;
+    if (livre(s1.id) && livre(s2.id)) {
+      pares++;
+      i++; // pares disjuntos: o segundo horário já foi usado
+    }
+  }
+  return pares;
+}
+
+/**
+ * Diagnóstico das geminadas na geração, da causa mais certa para a mais
+ * provável: carga que não comporta os pares → disponibilidade sem horários
+ * seguidos → concorrência com outras aulas (só sugestões).
+ */
+function explicarGeminadas(
+  id: string,
+  instancia: InstanciaMotor,
+  nomes: Nomes,
+  contexto: Contexto,
+): string {
+  const descricao = descreverAtribuicao(id, instancia, nomes);
+  const a = instancia.atribuicoes.find((x) => x.id === id);
+  if (contexto === "edicao" || !a) {
+    return `Aulas geminadas de ${descricao}: faltam pares de aulas consecutivas. Como resolver: mova as aulas para horários seguidos no mesmo dia.`;
+  }
+  const pares = plural(a.geminadas, "par", "pares");
+  const maximo = Math.floor(a.carga_semanal / 2);
+  if (a.geminadas > maximo) {
+    return `Aulas geminadas de ${descricao}: ${pares} exigem ${2 * a.geminadas} aulas, mas a carga semanal de ${plural(a.carga_semanal, "aula", "aulas")} comporta no máximo ${plural(maximo, "par", "pares")}. Como resolver: em Atribuições, reduza "Geminadas (pares)" para ${maximo} ou aumente a carga semanal.`;
+  }
+  const prof = nomes.professores.get(a.professor_id) ?? "o professor";
+  const livres = paresLivres(a, instancia);
+  if (livres < a.geminadas) {
+    return `Aulas geminadas de ${descricao}: são exigidos ${pares}, mas ${prof} só tem ${plural(livres, "par de horários seguidos disponível", "pares de horários seguidos disponíveis")} no turno da turma. Como resolver: libere horários seguidos na disponibilidade de ${prof} ou, em Atribuições, reduza "Geminadas (pares)" para ${livres}.`;
+  }
+  return `Aulas geminadas de ${descricao}: não sobram horários seguidos para os ${pares} exigidos. Como resolver: confira se ${prof} não tem aulas em outras turmas justamente nos horários seguidos que restam (libere mais horários na disponibilidade ou redistribua essas aulas) e se outras regras obrigatórias não ocupam esses horários; se não der, reduza "Geminadas (pares)" em Atribuições.`;
+}
+
 function traduzirMotivo(
   motivo: string,
   instancia: InstanciaMotor,
   nomes: Nomes,
+  contexto: Contexto,
 ): string {
   const [prefixo, ...resto] = motivo.split(":");
   const id = resto.join(":");
@@ -61,33 +131,33 @@ function traduzirMotivo(
   switch (prefixo) {
     case "disponibilidade": {
       const nome = nomes.professores.get(id) ?? `um professor removido (${id})`;
-      return `Disponibilidade de ${nome}: os horários indisponíveis conflitam com as aulas atribuídas.`;
+      return `Disponibilidade de ${nome}: os horários indisponíveis conflitam com as aulas atribuídas. Como resolver: libere mais horários na disponibilidade do professor ou reduza a carga dele.`;
     }
     case "geminadas":
-      return `Aulas geminadas de ${descreverAtribuicao(id, instancia, nomes)}: os pares de aulas consecutivas exigidos não cabem na grade.`;
+      return explicarGeminadas(id, instancia, nomes, contexto);
     case "recurso": {
       const nome = nomes.recursos.get(id) ?? `um recurso removido (${id})`;
-      return `Recurso ${nome}: a capacidade não comporta as aulas que o usam nos mesmos horários.`;
+      return `Recurso ${nome}: a capacidade não comporta as aulas que o usam nos mesmos horários. Como resolver: aumente a capacidade do recurso ou retire-o de algumas atribuições.`;
     }
     case "nao_mesmo_dia": {
       const p = instancia.regras.find((r) => r.id === id)?.parametros ?? {};
       const a = nomes.disciplinas.get(String(p.disciplina_a)) ?? "?";
       const b = nomes.disciplinas.get(String(p.disciplina_b)) ?? "?";
-      return `Regra "${CATALOGO_REGRAS.nao_mesmo_dia.rotulo}" (${a} e ${b}): não é possível manter as duas disciplinas em dias diferentes.`;
+      return `Regra "${CATALOGO_REGRAS.nao_mesmo_dia.rotulo}" (${a} e ${b}): não é possível manter as duas disciplinas em dias diferentes. Como resolver: desative a regra ou torne-a preferencial (não obrigatória) em Regras.`;
     }
     case "ultimo_horario": {
       const p = instancia.regras.find((r) => r.id === id)?.parametros ?? {};
       const d = nomes.disciplinas.get(String(p.disciplina_id)) ?? "?";
-      return `Regra "${CATALOGO_REGRAS.ultimo_horario.rotulo}" (${d}): não é possível evitar o último horário do dia.`;
+      return `Regra "${CATALOGO_REGRAS.ultimo_horario.rotulo}" (${d}): não é possível evitar o último horário do dia. Como resolver: desative a regra ou torne-a preferencial (não obrigatória) em Regras.`;
     }
     case "aulas_juntas": {
       const turma = nomes.turmas.get(id) ?? `uma turma removida (${id})`;
-      return `Regra "${CATALOGO_REGRAS.aulas_juntas.rotulo}" (${turma}): não é possível manter juntas as aulas de cada disciplina no mesmo dia.`;
+      return `Regra "${CATALOGO_REGRAS.aulas_juntas.rotulo}" (${turma}): não é possível manter juntas as aulas de cada disciplina no mesmo dia. Como resolver: desative a regra ou torne-a preferencial (não obrigatória) em Regras.`;
     }
     case "disciplina_sincronizada": {
       const p = instancia.regras.find((r) => r.id === id)?.parametros ?? {};
       const d = nomes.disciplinas.get(String(p.disciplina_id)) ?? "?";
-      return `Regra "${CATALOGO_REGRAS.disciplina_sincronizada.rotulo}" (${d}): não é possível pôr a disciplina nos mesmos horários em todas as turmas — confira se a carga é igual em todas e se os professores estão disponíveis nesses horários.`;
+      return `Regra "${CATALOGO_REGRAS.disciplina_sincronizada.rotulo}" (${d}): não é possível pôr a disciplina nos mesmos horários em todas as turmas — confira se a carga é igual em todas e se os professores estão disponíveis nesses horários. Como resolver: iguale a carga, libere esses horários na disponibilidade dos professores ou desative a regra em Regras.`;
     }
     case "estrutural": {
       const detalhe = traduzirEstrutural(resto, instancia, nomes);
@@ -170,7 +240,7 @@ export function traduzirNucleo(
 ): string[] {
   if (!instancia) return motivos;
   const nomes = indexar(instancia);
-  return motivos.map((m) => traduzirMotivo(m, instancia, nomes));
+  return motivos.map((m) => traduzirMotivo(m, instancia, nomes, "geracao"));
 }
 
 export type MotivoTraduzido = { texto: string; slotIds: string[] };
@@ -189,7 +259,7 @@ export function traduzirViolacoes(
     const slot =
       partes[0] === "estrutural" && partes.length >= 4 ? partes[3] : null;
     return {
-      texto: traduzirMotivo(m, instancia, nomes),
+      texto: traduzirMotivo(m, instancia, nomes, "edicao"),
       slotIds: slot ? [slot] : [],
     };
   });
