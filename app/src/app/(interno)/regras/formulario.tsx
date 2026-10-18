@@ -28,8 +28,6 @@ export type RegraExistente = {
   parametros: Record<string, unknown>;
 };
 
-const ORDENS = [0, 1, 2, 3, 4, 5, 6, 7];
-
 function SeletorDisciplina({
   nome,
   rotulo,
@@ -66,9 +64,12 @@ function SeletorDisciplina({
 
 export function FormularioRegra({
   disciplinas,
+  ordens,
   registro,
 }: {
   disciplinas: Opcao[];
+  /** posições do dia da unidade (0 = 1º horário), de ordensDaUnidade */
+  ordens: number[];
   registro?: RegraExistente;
 }) {
   const [aberto, setAberto] = useState(false);
@@ -105,9 +106,7 @@ export function FormularioRegra({
   return (
     <Dialog open={aberto} onOpenChange={setAberto}>
       <DialogTrigger
-        render={
-          <Button variant={registro ? "outline" : "default"} size="sm" />
-        }
+        render={<Button variant={registro ? "outline" : "default"} size="sm" />}
       >
         {registro ? "Editar" : "Adicionar regra"}
       </DialogTrigger>
@@ -196,7 +195,7 @@ export function FormularioRegra({
               <fieldset className="text-sm">
                 <legend className="font-medium">Posições do dia</legend>
                 <div className="flex flex-wrap gap-3">
-                  {ORDENS.map((o) => (
+                  {ordens.map((o) => (
                     <label key={o} className="flex items-center gap-1">
                       <input
                         type="checkbox"

@@ -9,12 +9,12 @@ import { GradeEditor } from "./grade-editor";
 export default async function PaginaTurnos() {
   const perfil = (await obterUnidadeAtiva())!;
   const supabase = await criarClienteServidor();
-  const { data: turnos } = await supabase
+  const { data: turnos, error: erroTurnos } = await supabase
     .from("turnos")
     .select("id, nome")
     .eq("unidade_id", perfil.unidade_id)
     .order("criado_em");
-  const { data: slots } = await supabase
+  const { data: slots, error: erroSlots } = await supabase
     .from("slots")
     .select("turno_id, dia, ordem, hora_inicio, hora_fim")
     .eq("unidade_id", perfil.unidade_id)
@@ -29,6 +29,11 @@ export default async function PaginaTurnos() {
           campos={[{ nome: "nome", rotulo: "Nome do turno", tipo: "texto" }]}
         />
       </div>
+      {(erroTurnos || erroSlots) && (
+        <p role="alert" className="text-sm text-red-700">
+          Não foi possível ler os turnos. Recarregue a página.
+        </p>
+      )}
       {(turnos ?? []).map((t) => {
         const doTurno = (slots ?? []).filter((s) => s.turno_id === t.id);
         const dias = [...new Set(doTurno.map((s) => s.dia))].sort();

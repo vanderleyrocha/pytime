@@ -18,22 +18,32 @@ export const esquemaRecurso = z.object({
 
 export const esquemaProfessor = z.object({ nome: nomeObrigatorio });
 
-const horaValida = z
-  .string()
-  .regex(/^\d{2}:\d{2}$/, "Hora no formato HH:MM");
+const horaValida = z.string().regex(/^\d{2}:\d{2}$/, "Hora no formato HH:MM");
 
 export const esquemaGrade = z
   .object({
     dias: z
       .array(z.coerce.number().int().min(0).max(6))
-      .min(1, "Escolha ao menos um dia"),
+      .min(1, "Escolha ao menos um dia")
+      .refine((d) => new Set(d).size === d.length, "Dia repetido na grade"),
     horarios: z
       .array(z.object({ hora_inicio: horaValida, hora_fim: horaValida }))
-      .min(1, "Adicione ao menos um horário"),
+      .min(1, "Adicione ao menos um horário")
+      .max(12, "No máximo 12 horários por dia"),
+  })
+  .refine((g) => g.horarios.every((h) => h.hora_fim > h.hora_inicio), {
+    message: "Hora final deve ser maior que a inicial",
   })
   .refine(
-    (g) => g.horarios.every((h) => h.hora_fim > h.hora_inicio),
-    { message: "Hora final deve ser maior que a inicial" },
+    (g) => {
+      const ordenados = [...g.horarios].sort((a, b) =>
+        a.hora_inicio.localeCompare(b.hora_inicio),
+      );
+      return ordenados.every(
+        (h, i) => i === 0 || h.hora_inicio >= ordenados[i - 1].hora_fim,
+      );
+    },
+    { message: "Horários não podem se sobrepor" },
   );
 
 export const esquemaAtribuicao = z.object({

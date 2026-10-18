@@ -57,8 +57,7 @@ export const CATALOGO_REGRAS: Record<
   },
   preferencia_disciplina: {
     rotulo: "Preferência de horário da disciplina",
-    descricao:
-      "Disciplina prefere/evita posições do dia (ex.: pesadas cedo).",
+    descricao: "Disciplina prefere/evita posições do dia (ex.: pesadas cedo).",
     modo: "fixa_soft",
     temParametros: true,
   },
@@ -132,3 +131,12 @@ export const esquemaParametros = z
       });
     }
   });
+
+/**
+ * Posições do dia (ordem do horário, 0 = 1º) oferecidas nas regras de
+ * preferência de horário: do 1º ao maior horário cadastrado na unidade.
+ */
+export function ordensDaUnidade(slots: { ordem: number }[]): number[] {
+  const maior = slots.length ? Math.max(...slots.map((s) => s.ordem)) : 5;
+  return Array.from({ length: maior + 1 }, (_, i) => i);
+}
