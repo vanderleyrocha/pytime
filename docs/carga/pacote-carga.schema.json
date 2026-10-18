@@ -1,0 +1,240 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://pytime.app/schemas/pacote-carga/1.0.json",
+  "title": "Pacote de carga do PyTime",
+  "description": "Dados cadastrais de UMA unidade escolar para carga no PyTime. Todas as referências entre entidades usam o campo `codigo` (chave externa estável definida pelo sistema de origem), nunca UUIDs do PyTime. Ver docs/carga/README.md.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["versao", "origem", "turnos", "horarios", "turmas", "disciplinas", "professores", "atribuicoes"],
+  "properties": {
+    "versao": {
+      "const": "1.0",
+      "description": "Versão do formato do pacote."
+    },
+    "origem": { "$ref": "#/$defs/origem" },
+    "turnos": { "type": "array", "items": { "$ref": "#/$defs/turno" } },
+    "horarios": { "type": "array", "items": { "$ref": "#/$defs/horario" } },
+    "turmas": { "type": "array", "items": { "$ref": "#/$defs/turma" } },
+    "disciplinas": { "type": "array", "items": { "$ref": "#/$defs/disciplina" } },
+    "professores": { "type": "array", "items": { "$ref": "#/$defs/professor" } },
+    "recursos": { "type": "array", "items": { "$ref": "#/$defs/recurso" }, "default": [] },
+    "disponibilidades": { "type": "array", "items": { "$ref": "#/$defs/disponibilidade" }, "default": [] },
+    "atribuicoes": { "type": "array", "items": { "$ref": "#/$defs/atribuicao" } },
+    "regras": { "type": "array", "items": { "$ref": "#/$defs/regra" }, "default": [] }
+  },
+  "$defs": {
+    "codigo": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 64,
+      "pattern": "^[A-Za-z0-9._-]+$",
+      "description": "Chave externa estável (letras sem acento, dígitos, '.', '_' ou '-'). Única por entidade dentro do pacote."
+    },
+    "nome": { "type": "string", "minLength": 1, "maxLength": 200 },
+    "dia": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 6,
+      "description": "0 = segunda, 1 = terça, ..., 4 = sexta, 5 = sábado, 6 = domingo."
+    },
+    "ordem": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Posição do horário no dia dentro do turno (0 = primeiro horário)."
+    },
+    "hora": {
+      "type": "string",
+      "pattern": "^([01][0-9]|2[0-3]):[0-5][0-9]$",
+      "description": "Hora no formato HH:MM (24 h)."
+    },
+    "origem": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["sistema", "gerado_em"],
+      "properties": {
+        "sistema": { "type": "string", "minLength": 1, "description": "Sistema que gerou o pacote (ex.: escolajba)." },
+        "escola_inep": { "type": "string", "pattern": "^[0-9]{8}$", "description": "Código INEP da escola." },
+        "escola_nome": { "type": "string" },
+        "ano_letivo": { "type": "integer", "minimum": 2000, "maximum": 2100 },
+        "gerado_em": { "type": "string", "format": "date-time" }
+      }
+    },
+    "turno": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["codigo", "nome"],
+      "properties": {
+        "codigo": { "$ref": "#/$defs/codigo" },
+        "nome": { "$ref": "#/$defs/nome" }
+      }
+    },
+    "horario": {
+      "type": "object",
+      "description": "Um slot da grade semanal do turno. Chave natural: (turno, dia, ordem).",
+      "additionalProperties": false,
+      "required": ["turno", "dia", "ordem"],
+      "properties": {
+        "turno": { "$ref": "#/$defs/codigo" },
+        "dia": { "$ref": "#/$defs/dia" },
+        "ordem": { "$ref": "#/$defs/ordem" },
+        "hora_inicio": { "$ref": "#/$defs/hora" },
+        "hora_fim": { "$ref": "#/$defs/hora" }
+      }
+    },
+    "turma": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["codigo", "nome", "turno"],
+      "properties": {
+        "codigo": { "$ref": "#/$defs/codigo" },
+        "nome": { "$ref": "#/$defs/nome" },
+        "turno": { "$ref": "#/$defs/codigo" }
+      }
+    },
+    "disciplina": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["codigo", "nome"],
+      "properties": {
+        "codigo": { "$ref": "#/$defs/codigo" },
+        "nome": { "$ref": "#/$defs/nome" }
+      }
+    },
+    "professor": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["codigo", "nome"],
+      "properties": {
+        "codigo": { "$ref": "#/$defs/codigo" },
+        "nome": { "$ref": "#/$defs/nome" }
+      }
+    },
+    "recurso": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["codigo", "nome"],
+      "properties": {
+        "codigo": { "$ref": "#/$defs/codigo" },
+        "nome": { "$ref": "#/$defs/nome" },
+        "capacidade": { "type": "integer", "minimum": 1, "default": 1 }
+      }
+    },
+    "disponibilidade": {
+      "type": "object",
+      "description": "Exceção à disponibilidade do professor num horário. Horário não listado = disponível. Chave natural: (professor, turno, dia, ordem).",
+      "additionalProperties": false,
+      "required": ["professor", "turno", "dia", "ordem", "status"],
+      "properties": {
+        "professor": { "$ref": "#/$defs/codigo" },
+        "turno": { "$ref": "#/$defs/codigo" },
+        "dia": { "$ref": "#/$defs/dia" },
+        "ordem": { "$ref": "#/$defs/ordem" },
+        "status": { "enum": ["disponivel", "indisponivel", "prefere", "evita"] }
+      }
+    },
+    "atribuicao": {
+      "type": "object",
+      "description": "Professor X leciona disciplina Y na turma Z. Chave natural: (professor, disciplina, turma).",
+      "additionalProperties": false,
+      "required": ["professor", "disciplina", "turma", "carga_semanal"],
+      "properties": {
+        "professor": { "$ref": "#/$defs/codigo" },
+        "disciplina": { "$ref": "#/$defs/codigo" },
+        "turma": { "$ref": "#/$defs/codigo" },
+        "carga_semanal": { "type": "integer", "minimum": 1, "description": "Aulas por semana." },
+        "geminadas": { "type": "integer", "minimum": 0, "default": 0, "description": "Nº de pares de aulas consecutivas exigidos (2 × geminadas ≤ carga_semanal)." },
+        "recursos": { "type": "array", "items": { "$ref": "#/$defs/codigo" }, "uniqueItems": true, "default": [] }
+      }
+    },
+    "regra": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["codigo", "tipo", "hard"],
+      "properties": {
+        "codigo": { "$ref": "#/$defs/codigo" },
+        "tipo": {
+          "enum": [
+            "disponibilidade_professor", "geminadas", "recurso_compartilhado",
+            "janelas_professor", "distribuicao_disciplina", "preferencia_professor",
+            "preferencia_disciplina", "compactacao_dias", "ultimo_horario", "nao_mesmo_dia"
+          ]
+        },
+        "hard": { "type": "boolean" },
+        "peso": { "type": "integer", "minimum": 1, "default": 1 },
+        "ativa": { "type": "boolean", "default": true },
+        "parametros": { "type": "object", "default": {} }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "tipo": { "enum": ["disponibilidade_professor", "geminadas", "recurso_compartilhado"] } } },
+          "then": { "properties": { "hard": { "const": true }, "parametros": { "type": "object", "maxProperties": 0 } } }
+        },
+        {
+          "if": { "properties": { "tipo": { "enum": ["janelas_professor", "preferencia_professor", "compactacao_dias"] } } },
+          "then": { "properties": { "hard": { "const": false }, "parametros": { "type": "object", "maxProperties": 0 } } }
+        },
+        {
+          "if": { "properties": { "tipo": { "const": "distribuicao_disciplina" } } },
+          "then": {
+            "properties": {
+              "hard": { "const": false },
+              "parametros": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["max_por_dia"],
+                "properties": { "max_por_dia": { "type": "integer", "minimum": 1 } }
+              }
+            }
+          }
+        },
+        {
+          "if": { "properties": { "tipo": { "const": "preferencia_disciplina" } } },
+          "then": {
+            "properties": {
+              "hard": { "const": false },
+              "parametros": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["disciplina", "ordens", "modo"],
+                "properties": {
+                  "disciplina": { "$ref": "#/$defs/codigo" },
+                  "ordens": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/ordem" } },
+                  "modo": { "enum": ["evita", "prefere"] }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": { "properties": { "tipo": { "const": "ultimo_horario" } } },
+          "then": {
+            "properties": {
+              "parametros": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["disciplina"],
+                "properties": { "disciplina": { "$ref": "#/$defs/codigo" } }
+              }
+            }
+          }
+        },
+        {
+          "if": { "properties": { "tipo": { "const": "nao_mesmo_dia" } } },
+          "then": {
+            "properties": {
+              "parametros": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["disciplina_a", "disciplina_b"],
+                "properties": {
+                  "disciplina_a": { "$ref": "#/$defs/codigo" },
+                  "disciplina_b": { "$ref": "#/$defs/codigo" }
+                }
+              }
+            }
+          }
+        }
+      ]
+    }
+  }
+}

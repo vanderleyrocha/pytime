@@ -1,0 +1,9 @@
+professor;turno;dia;ordem;status
+SRV-104;INTEGRAL;4;0;indisponivel
+SRV-104;INTEGRAL;4;1;indisponivel
+SRV-104;INTEGRAL;4;2;indisponivel
+SRV-104;INTEGRAL;4;3;indisponivel
+SRV-104;INTEGRAL;4;4;indisponivel
+SRV-104;INTEGRAL;4;5;indisponivel
+SRV-104;INTEGRAL;4;6;indisponivel
+SRV-102;INTEGRAL;0;0;evita

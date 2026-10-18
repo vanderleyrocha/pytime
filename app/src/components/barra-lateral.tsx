@@ -32,6 +32,9 @@ export function BarraLateral({
         <Link href="/recursos">Recursos</Link>
         <Link href="/atribuicoes">Atribuições</Link>
         <Link href="/regras">Regras</Link>
+        {ativa.papel !== "professor" && (
+          <Link href="/importar">Importar dados</Link>
+        )}
         {ativa.papel === "admin" && <Link href="/convites">Convites</Link>}
         <Link href="/geracoes">Gerações</Link>
       </nav>
