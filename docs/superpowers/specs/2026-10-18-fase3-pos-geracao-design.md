@@ -205,10 +205,10 @@ Entra na subfase indicada (critério: a subfase já mexe naquele código).
 |---|---|---|
 | Custo inflado do `resolver` em solução `viavel` (corrigir no motor, com benchmark) | revisão 17/10 | 3B (antes da comparação ficar permanente) |
 | Ordem das restrições de professor depende de `PYTHONHASHSEED` (`set` em `modelo.py`) | revisão 18/10 | 3B, junto do item acima |
-| RPCs transacionais para `salvarGrade`/`salvarDisponibilidades` | Fase 2C | 3A |
+| RPCs transacionais para `salvarGrade` (grade de **turnos**)/`salvarDisponibilidades` | Fase 2C | 3A |
 | `(select tenho_papel(...))` nas policies | Fase 2C | 3A (migration nova) |
 | Exibir erros de selects hoje descartados | Fase 2C | 3A nas telas tocadas; resto em 3B |
-| `ORDENS` derivado da grade; agrupar matriz por id de turno; bounds no `esquemaGrade` | Fase 2C | 3A (tela de grade) |
+| `ORDENS` derivado da grade (formulário de regras); agrupar matriz por id de turno; bounds no `esquemaGrade` (turnos) | Fase 2C | 3A (tasks independentes da edição) |
 | Parâmetros de regra órfãos após excluir disciplina; confirmação no excluir | Fase 2C | 3B |
 
 ## 9. Decisões (respondidas em 18/10/2026)
