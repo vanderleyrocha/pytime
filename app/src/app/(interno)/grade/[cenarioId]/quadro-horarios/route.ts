@@ -1,4 +1,5 @@
 import { criarClienteServidor } from "@/lib/supabase/cliente-servidor";
+import { lerTodas } from "@/lib/supabase/ler-todas";
 import { obterUnidadeAtiva } from "@/lib/unidade-ativa";
 import {
   gerarQuadroHorarios,
@@ -52,14 +53,22 @@ export async function GET(
       .select("status, resultado")
       .eq("id", cenario.geracao_id)
       .maybeSingle(),
-    supabase
-      .from("aulas_alocadas")
-      .select("atribuicao_id, slot_id")
-      .eq("cenario_id", cenarioId),
-    supabase
-      .from("atribuicoes")
-      .select("id, professor_id, disciplina_id, turma_id")
-      .eq("unidade_id", u),
+    lerTodas((de, ate) =>
+      supabase
+        .from("aulas_alocadas")
+        .select("atribuicao_id, slot_id")
+        .eq("cenario_id", cenarioId)
+        .order("id")
+        .range(de, ate),
+    ),
+    lerTodas((de, ate) =>
+      supabase
+        .from("atribuicoes")
+        .select("id, professor_id, disciplina_id, turma_id")
+        .eq("unidade_id", u)
+        .order("id")
+        .range(de, ate),
+    ),
     supabase
       .from("slots")
       .select("id, turno_id, dia, ordem")

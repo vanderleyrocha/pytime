@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { criarClienteServidor } from "@/lib/supabase/cliente-servidor";
+import { lerTodas } from "@/lib/supabase/ler-todas";
 import { obterUnidadeAtiva } from "@/lib/unidade-ativa";
 import {
   buscarDadosUnidade,
@@ -52,14 +53,22 @@ export default async function PaginaGrade({
 
   const [aulasR, atribR, slotsR, turmasR, profsR, discR, turnosR, gerR] =
     await Promise.all([
-      supabase
-        .from("aulas_alocadas")
-        .select("atribuicao_id, slot_id")
-        .eq("cenario_id", cenarioId),
-      supabase
-        .from("atribuicoes")
-        .select("id, professor_id, disciplina_id, turma_id")
-        .eq("unidade_id", perfil.unidade_id),
+      lerTodas((de, ate) =>
+        supabase
+          .from("aulas_alocadas")
+          .select("atribuicao_id, slot_id")
+          .eq("cenario_id", cenarioId)
+          .order("id")
+          .range(de, ate),
+      ),
+      lerTodas((de, ate) =>
+        supabase
+          .from("atribuicoes")
+          .select("id, professor_id, disciplina_id, turma_id")
+          .eq("unidade_id", perfil.unidade_id)
+          .order("id")
+          .range(de, ate),
+      ),
       supabase
         .from("slots")
         .select("id, dia, ordem, turno_id")
