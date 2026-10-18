@@ -2,6 +2,12 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { criarClienteServidor } from "@/lib/supabase/cliente-servidor";
 import { obterUnidadeAtiva } from "@/lib/unidade-ativa";
+import type { InstanciaMotor } from "@/lib/instancia";
+import { custoExibido, type Avaliacao } from "@/lib/edicao/avaliacao";
+import type { Excecao } from "@/lib/edicao/acoes";
+import { traduzirNucleo } from "@/lib/nucleo";
+import { CATALOGO_REGRAS, type TipoRegra } from "@/lib/validacao/regras";
+import { Cabecalho } from "./cabecalho";
 
 const DIAS = ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"];
 
@@ -72,7 +78,9 @@ export default async function PaginaGrade({
 
   const { data: cenario } = await supabase
     .from("cenarios")
-    .select("id, geracao_id")
+    .select(
+      "id, geracao_id, nome, origem, oficial, versao, avaliacao, excecoes, atualizado_em, cenario_base_id",
+    )
     .eq("id", cenarioId)
     .eq("unidade_id", perfil.unidade_id)
     .maybeSingle();
@@ -113,10 +121,33 @@ export default async function PaginaGrade({
         .order("nome"),
       supabase
         .from("geracoes")
-        .select("resultado")
+        .select("resultado, instancia")
         .eq("id", cenario.geracao_id)
         .maybeSingle(),
     ]);
+
+  const erroLeitura = [
+    aulasR,
+    atribR,
+    slotsR,
+    turmasR,
+    profsR,
+    discR,
+    turnosR,
+    gerR,
+  ].some((r) => r.error);
+  const { data: base } = cenario.cenario_base_id
+    ? await supabase
+        .from("cenarios")
+        .select("nome")
+        .eq("id", cenario.cenario_base_id)
+        .maybeSingle()
+    : { data: null };
+  const instancia =
+    (gerR.data?.instancia as InstanciaMotor | undefined) ?? null;
+  const avaliacao = (cenario.avaliacao as Avaliacao | null) ?? null;
+  const excecoes = (cenario.excecoes as Excecao[] | null) ?? [];
+  const podeEditar = perfil.papel !== "professor";
 
   const nome = (l: { id: string; nome: string }[] | null) =>
     Object.fromEntries((l ?? []).map((x) => [x.id, x.nome]));
@@ -153,6 +184,12 @@ export default async function PaginaGrade({
     custo_total?: number;
     custos?: { regra_id: string; tipo: string; custo: number }[];
   } | null;
+  const custo = custoExibido(avaliacao, resultado);
+  const custosPorRegra = (avaliacao?.custos ?? resultado?.custos ?? []).filter(
+    (c) => c.custo > 0,
+  );
+  const rotuloRegra = (tipo: string) =>
+    CATALOGO_REGRAS[tipo as TipoRegra]?.rotulo ?? tipo;
 
   const slotsDoTurno = (turnoId: string) =>
     slots.filter((s) => s.turno_id === turnoId);
@@ -173,12 +210,28 @@ export default async function PaginaGrade({
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Grade gerada</h1>
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <Cabecalho
+          dados={{
+            cenarioId,
+            nome: cenario.nome,
+            origem: cenario.origem as "gerado" | "duplicado",
+            nomeBase: base?.nome ?? null,
+            oficial: cenario.oficial,
+            versao: cenario.versao,
+            atualizadoEm: cenario.atualizado_em,
+            podeEditar,
+          }}
+        />
         <div className="flex gap-4 text-sm">
           <span>
-            Exportar para o escolajba:{" "}
-            <a className="underline" href={`/grade/${cenarioId}/quadro-horarios`}>
+            {cenario.oficial
+              ? "Exportar o horário oficial para o escolajba: "
+              : "Exportar para o escolajba: "}
+            <a
+              className="underline"
+              href={`/grade/${cenarioId}/quadro-horarios`}
+            >
               JSON
             </a>{" "}
             ·{" "}
@@ -194,6 +247,43 @@ export default async function PaginaGrade({
           </Link>
         </div>
       </div>
+      {erroLeitura && (
+        <p role="alert" className="text-sm text-red-700">
+          Parte dos dados do cenário não pôde ser lida. Recarregue a página.
+        </p>
+      )}
+      {custo && (
+        <p className="text-sm">
+          Custo das regras preferenciais: <strong>{custo.total}</strong>
+          {custo.fonte === "estimado" && (
+            <span className="text-muted-foreground">
+              {" "}
+              (estimado pela geração; vira exato na próxima edição salva)
+            </span>
+          )}
+        </p>
+      )}
+      {excecoes.length > 0 && (
+        <section className="rounded border border-amber-400 bg-amber-50 p-3 text-sm">
+          <h2 className="font-semibold">
+            Regras obrigatórias violadas e aceitas (salvo com
+            &quot;forçar&quot;)
+          </h2>
+          <ul className="list-inside list-disc">
+            {traduzirNucleo(
+              excecoes.map((e) => e.motivo),
+              instancia,
+            ).map((texto, i) => (
+              <li key={i}>
+                {texto}{" "}
+                <span className="text-muted-foreground">
+                  ({new Date(excecoes[i].forcado_em).toLocaleString("pt-BR")})
+                </span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
       <nav className="flex gap-4 text-sm">
         {abas.map((a) => (
           <Link
@@ -252,19 +342,15 @@ export default async function PaginaGrade({
         </div>
       )}
 
-      {resultado && (
+      {custosPorRegra.length > 0 && (
         <section className="text-sm">
-          <h2 className="font-semibold">
-            Custos das regras preferenciais (total {resultado.custo_total ?? 0})
-          </h2>
+          <h2 className="font-semibold">Custo por regra preferencial</h2>
           <ul className="list-inside list-disc">
-            {(resultado.custos ?? [])
-              .filter((c) => c.custo > 0)
-              .map((c) => (
-                <li key={c.regra_id}>
-                  {c.tipo}: {c.custo}
-                </li>
-              ))}
+            {custosPorRegra.map((c) => (
+              <li key={c.regra_id}>
+                {rotuloRegra(c.tipo)}: {c.custo}
+              </li>
+            ))}
           </ul>
         </section>
       )}

@@ -16,6 +16,14 @@ const ROTULO_STATUS: Record<string, string> = {
   erro: "Erro",
 };
 
+type CenarioDaLista = {
+  id: string;
+  nome: string;
+  oficial: boolean;
+  avaliacao: { custo_total: number } | null;
+  criado_em: string;
+};
+
 export default async function PaginaGeracoes() {
   const perfil = (await obterUnidadeAtiva())!;
   const supabase = await criarClienteServidor();
@@ -23,7 +31,7 @@ export default async function PaginaGeracoes() {
   const { data: geracoes, error } = await supabase
     .from("geracoes")
     .select(
-      "id, status, criada_em, budget_segundos, progresso, resultado, nucleo_conflito, detalhe_erro, tentativas, cenarios!cenarios_geracao_id_fkey(id)",
+      "id, status, criada_em, budget_segundos, progresso, resultado, nucleo_conflito, detalhe_erro, tentativas, cenarios!cenarios_geracao_id_fkey(id, nome, oficial, avaliacao, criado_em)",
     )
     .eq("unidade_id", perfil.unidade_id)
     .order("criada_em", { ascending: false })
@@ -78,7 +86,9 @@ export default async function PaginaGeracoes() {
               tempo_segundos: number;
             } | null;
             const resultado = g.resultado as { custo_total?: number } | null;
-            const cenario = (g.cenarios as { id: string }[] | null)?.[0];
+            const cenarios = (
+              (g.cenarios as CenarioDaLista[] | null) ?? []
+            ).toSorted((a, b) => a.criado_em.localeCompare(b.criado_em));
             return (
               <tr key={g.id} className="border-b align-top">
                 <td className="py-2">
@@ -92,12 +102,32 @@ export default async function PaginaGeracoes() {
                       ? "iniciando..."
                       : "—"}
                 </td>
-                <td>{resultado?.custo_total ?? "—"}</td>
+                <td>
+                  {cenarios[0]?.avaliacao?.custo_total ??
+                    resultado?.custo_total ??
+                    "—"}
+                </td>
                 <td className="max-w-md">
-                  {g.status === "concluida" && cenario && (
-                    <Link className="underline" href={`/grade/${cenario.id}`}>
-                      Ver grade
-                    </Link>
+                  {g.status === "concluida" && cenarios.length > 0 && (
+                    <ul className="flex flex-col gap-1">
+                      {cenarios.map((c) => (
+                        <li key={c.id}>
+                          <Link className="underline" href={`/grade/${c.id}`}>
+                            {c.nome}
+                          </Link>
+                          {c.oficial && (
+                            <span className="ml-2 rounded bg-green-700 px-1.5 py-0.5 text-xs font-semibold text-white">
+                              Oficial
+                            </span>
+                          )}
+                          {c.avaliacao && (
+                            <span className="ml-2 text-xs text-muted-foreground">
+                              custo {c.avaliacao.custo_total}
+                            </span>
+                          )}
+                        </li>
+                      ))}
+                    </ul>
                   )}
                   {g.status === "inviavel" && (
                     <div className="text-red-700">
