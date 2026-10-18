@@ -78,7 +78,9 @@ nunca ligue um worker do Fly contra o staging.
    ativos por organização (produção + staging).
 2. **Aplicar as migrations** (da raiz do repo), sem trocar o `link` da
    produção. Use a URL do *Session pooler*: dashboard do staging →
-   *Connect* → *Session pooler*. Ela tem o formato
+   *Connect* → aba *Direct* (Connection string) → método *Session pooler*
+   (porta 5432; a 6543 é o *Transaction pooler*, que não serve para pgTAP
+   nem para os testes do worker). Ela tem o formato
    `postgresql://postgres.<ref-staging>:<SENHA>@aws-0-sa-east-1.pooler.supabase.com:5432/postgres`.
 
    ```bash
