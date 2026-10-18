@@ -1,0 +1,7 @@
+professor;turno;dia;ordem;status
+SRV-104;MANHA;4;0;indisponivel
+SRV-104;MANHA;4;1;indisponivel
+SRV-104;MANHA;4;2;indisponivel
+SRV-104;MANHA;4;3;indisponivel
+SRV-104;MANHA;4;4;indisponivel
+SRV-102;MANHA;0;0;evita

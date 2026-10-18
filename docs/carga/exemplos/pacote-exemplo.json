@@ -1,0 +1,531 @@
+{
+  "versao": "1.0",
+  "origem": {
+    "sistema": "escolajba",
+    "escola_inep": "12011517",
+    "escola_nome": "Escola Exemplo",
+    "ano_letivo": 2027,
+    "gerado_em": "2026-10-18T10:00:00-05:00"
+  },
+  "turnos": [
+    {
+      "codigo": "MANHA",
+      "nome": "Manhã"
+    }
+  ],
+  "horarios": [
+    {
+      "turno": "MANHA",
+      "dia": 0,
+      "ordem": 0,
+      "hora_inicio": "07:00",
+      "hora_fim": "07:50"
+    },
+    {
+      "turno": "MANHA",
+      "dia": 0,
+      "ordem": 1,
+      "hora_inicio": "07:50",
+      "hora_fim": "08:40"
+    },
+    {
+      "turno": "MANHA",
+      "dia": 0,
+      "ordem": 2,
+      "hora_inicio": "08:40",
+      "hora_fim": "09:30"
+    },
+    {
+      "turno": "MANHA",
+      "dia": 0,
+      "ordem": 3,
+      "hora_inicio": "09:50",
+      "hora_fim": "10:40"
+    },
+    {
+      "turno": "MANHA",
+      "dia": 0,
+      "ordem": 4,
+      "hora_inicio": "10:40",
+      "hora_fim": "11:30"
+    },
+    {
+      "turno": "MANHA",
+      "dia": 1,
+      "ordem": 0,
+      "hora_inicio": "07:00",
+      "hora_fim": "07:50"
+    },
+    {
+      "turno": "MANHA",
+      "dia": 1,
+      "ordem": 1,
+      "hora_inicio": "07:50",
+      "hora_fim": "08:40"
+    },
+    {
+      "turno": "MANHA",
+      "dia": 1,
+      "ordem": 2,
+      "hora_inicio": "08:40",
+      "hora_fim": "09:30"
+    },
+    {
+      "turno": "MANHA",
+      "dia": 1,
+      "ordem": 3,
+      "hora_inicio": "09:50",
+      "hora_fim": "10:40"
+    },
+    {
+      "turno": "MANHA",
+      "dia": 1,
+      "ordem": 4,
+      "hora_inicio": "10:40",
+      "hora_fim": "11:30"
+    },
+    {
+      "turno": "MANHA",
+      "dia": 2,
+      "ordem": 0,
+      "hora_inicio": "07:00",
+      "hora_fim": "07:50"
+    },
+    {
+      "turno": "MANHA",
+      "dia": 2,
+      "ordem": 1,
+      "hora_inicio": "07:50",
+      "hora_fim": "08:40"
+    },
+    {
+      "turno": "MANHA",
+      "dia": 2,
+      "ordem": 2,
+      "hora_inicio": "08:40",
+      "hora_fim": "09:30"
+    },
+    {
+      "turno": "MANHA",
+      "dia": 2,
+      "ordem": 3,
+      "hora_inicio": "09:50",
+      "hora_fim": "10:40"
+    },
+    {
+      "turno": "MANHA",
+      "dia": 2,
+      "ordem": 4,
+      "hora_inicio": "10:40",
+      "hora_fim": "11:30"
+    },
+    {
+      "turno": "MANHA",
+      "dia": 3,
+      "ordem": 0,
+      "hora_inicio": "07:00",
+      "hora_fim": "07:50"
+    },
+    {
+      "turno": "MANHA",
+      "dia": 3,
+      "ordem": 1,
+      "hora_inicio": "07:50",
+      "hora_fim": "08:40"
+    },
+    {
+      "turno": "MANHA",
+      "dia": 3,
+      "ordem": 2,
+      "hora_inicio": "08:40",
+      "hora_fim": "09:30"
+    },
+    {
+      "turno": "MANHA",
+      "dia": 3,
+      "ordem": 3,
+      "hora_inicio": "09:50",
+      "hora_fim": "10:40"
+    },
+    {
+      "turno": "MANHA",
+      "dia": 3,
+      "ordem": 4,
+      "hora_inicio": "10:40",
+      "hora_fim": "11:30"
+    },
+    {
+      "turno": "MANHA",
+      "dia": 4,
+      "ordem": 0,
+      "hora_inicio": "07:00",
+      "hora_fim": "07:50"
+    },
+    {
+      "turno": "MANHA",
+      "dia": 4,
+      "ordem": 1,
+      "hora_inicio": "07:50",
+      "hora_fim": "08:40"
+    },
+    {
+      "turno": "MANHA",
+      "dia": 4,
+      "ordem": 2,
+      "hora_inicio": "08:40",
+      "hora_fim": "09:30"
+    },
+    {
+      "turno": "MANHA",
+      "dia": 4,
+      "ordem": 3,
+      "hora_inicio": "09:50",
+      "hora_fim": "10:40"
+    },
+    {
+      "turno": "MANHA",
+      "dia": 4,
+      "ordem": 4,
+      "hora_inicio": "10:40",
+      "hora_fim": "11:30"
+    }
+  ],
+  "turmas": [
+    {
+      "codigo": "TUR-201",
+      "nome": "6º ano A",
+      "turno": "MANHA"
+    },
+    {
+      "codigo": "TUR-202",
+      "nome": "6º ano B",
+      "turno": "MANHA"
+    }
+  ],
+  "disciplinas": [
+    {
+      "codigo": "POR",
+      "nome": "Língua Portuguesa"
+    },
+    {
+      "codigo": "MAT",
+      "nome": "Matemática"
+    },
+    {
+      "codigo": "CIE",
+      "nome": "Ciências"
+    },
+    {
+      "codigo": "HIS",
+      "nome": "História"
+    },
+    {
+      "codigo": "GEO",
+      "nome": "Geografia"
+    },
+    {
+      "codigo": "ING",
+      "nome": "Língua Inglesa"
+    },
+    {
+      "codigo": "EDF",
+      "nome": "Educação Física"
+    },
+    {
+      "codigo": "ART",
+      "nome": "Arte"
+    }
+  ],
+  "professores": [
+    {
+      "codigo": "SRV-101",
+      "nome": "Ana Souza"
+    },
+    {
+      "codigo": "SRV-102",
+      "nome": "Bruno Lima"
+    },
+    {
+      "codigo": "SRV-103",
+      "nome": "Carla Dias"
+    },
+    {
+      "codigo": "SRV-104",
+      "nome": "Diego Rocha"
+    },
+    {
+      "codigo": "SRV-105",
+      "nome": "Elisa Melo"
+    },
+    {
+      "codigo": "SRV-106",
+      "nome": "Fábio Nunes"
+    }
+  ],
+  "recursos": [
+    {
+      "codigo": "QUADRA",
+      "nome": "Quadra poliesportiva",
+      "capacidade": 1
+    }
+  ],
+  "disponibilidades": [
+    {
+      "professor": "SRV-104",
+      "turno": "MANHA",
+      "dia": 4,
+      "ordem": 0,
+      "status": "indisponivel"
+    },
+    {
+      "professor": "SRV-104",
+      "turno": "MANHA",
+      "dia": 4,
+      "ordem": 1,
+      "status": "indisponivel"
+    },
+    {
+      "professor": "SRV-104",
+      "turno": "MANHA",
+      "dia": 4,
+      "ordem": 2,
+      "status": "indisponivel"
+    },
+    {
+      "professor": "SRV-104",
+      "turno": "MANHA",
+      "dia": 4,
+      "ordem": 3,
+      "status": "indisponivel"
+    },
+    {
+      "professor": "SRV-104",
+      "turno": "MANHA",
+      "dia": 4,
+      "ordem": 4,
+      "status": "indisponivel"
+    },
+    {
+      "professor": "SRV-102",
+      "turno": "MANHA",
+      "dia": 0,
+      "ordem": 0,
+      "status": "evita"
+    }
+  ],
+  "atribuicoes": [
+    {
+      "professor": "SRV-101",
+      "disciplina": "POR",
+      "turma": "TUR-201",
+      "carga_semanal": 5,
+      "geminadas": 0,
+      "recursos": []
+    },
+    {
+      "professor": "SRV-102",
+      "disciplina": "MAT",
+      "turma": "TUR-201",
+      "carga_semanal": 5,
+      "geminadas": 0,
+      "recursos": []
+    },
+    {
+      "professor": "SRV-103",
+      "disciplina": "CIE",
+      "turma": "TUR-201",
+      "carga_semanal": 3,
+      "geminadas": 0,
+      "recursos": []
+    },
+    {
+      "professor": "SRV-104",
+      "disciplina": "HIS",
+      "turma": "TUR-201",
+      "carga_semanal": 3,
+      "geminadas": 0,
+      "recursos": []
+    },
+    {
+      "professor": "SRV-103",
+      "disciplina": "GEO",
+      "turma": "TUR-201",
+      "carga_semanal": 3,
+      "geminadas": 0,
+      "recursos": []
+    },
+    {
+      "professor": "SRV-105",
+      "disciplina": "ING",
+      "turma": "TUR-201",
+      "carga_semanal": 2,
+      "geminadas": 0,
+      "recursos": []
+    },
+    {
+      "professor": "SRV-106",
+      "disciplina": "EDF",
+      "turma": "TUR-201",
+      "carga_semanal": 2,
+      "geminadas": 1,
+      "recursos": [
+        "QUADRA"
+      ]
+    },
+    {
+      "professor": "SRV-101",
+      "disciplina": "ART",
+      "turma": "TUR-201",
+      "carga_semanal": 2,
+      "geminadas": 1,
+      "recursos": []
+    },
+    {
+      "professor": "SRV-101",
+      "disciplina": "POR",
+      "turma": "TUR-202",
+      "carga_semanal": 5,
+      "geminadas": 0,
+      "recursos": []
+    },
+    {
+      "professor": "SRV-102",
+      "disciplina": "MAT",
+      "turma": "TUR-202",
+      "carga_semanal": 5,
+      "geminadas": 0,
+      "recursos": []
+    },
+    {
+      "professor": "SRV-103",
+      "disciplina": "CIE",
+      "turma": "TUR-202",
+      "carga_semanal": 3,
+      "geminadas": 0,
+      "recursos": []
+    },
+    {
+      "professor": "SRV-104",
+      "disciplina": "HIS",
+      "turma": "TUR-202",
+      "carga_semanal": 3,
+      "geminadas": 0,
+      "recursos": []
+    },
+    {
+      "professor": "SRV-103",
+      "disciplina": "GEO",
+      "turma": "TUR-202",
+      "carga_semanal": 3,
+      "geminadas": 0,
+      "recursos": []
+    },
+    {
+      "professor": "SRV-105",
+      "disciplina": "ING",
+      "turma": "TUR-202",
+      "carga_semanal": 2,
+      "geminadas": 0,
+      "recursos": []
+    },
+    {
+      "professor": "SRV-106",
+      "disciplina": "EDF",
+      "turma": "TUR-202",
+      "carga_semanal": 2,
+      "geminadas": 1,
+      "recursos": [
+        "QUADRA"
+      ]
+    },
+    {
+      "professor": "SRV-101",
+      "disciplina": "ART",
+      "turma": "TUR-202",
+      "carga_semanal": 2,
+      "geminadas": 1,
+      "recursos": []
+    }
+  ],
+  "regras": [
+    {
+      "codigo": "R-DISP",
+      "tipo": "disponibilidade_professor",
+      "hard": true,
+      "peso": 1,
+      "ativa": true,
+      "parametros": {}
+    },
+    {
+      "codigo": "R-GEM",
+      "tipo": "geminadas",
+      "hard": true,
+      "peso": 1,
+      "ativa": true,
+      "parametros": {}
+    },
+    {
+      "codigo": "R-REC",
+      "tipo": "recurso_compartilhado",
+      "hard": true,
+      "peso": 1,
+      "ativa": true,
+      "parametros": {}
+    },
+    {
+      "codigo": "R-JAN",
+      "tipo": "janelas_professor",
+      "hard": false,
+      "peso": 3,
+      "ativa": true,
+      "parametros": {}
+    },
+    {
+      "codigo": "R-DIST",
+      "tipo": "distribuicao_disciplina",
+      "hard": false,
+      "peso": 2,
+      "ativa": true,
+      "parametros": {
+        "max_por_dia": 2
+      }
+    },
+    {
+      "codigo": "R-MAT-CEDO",
+      "tipo": "preferencia_disciplina",
+      "hard": false,
+      "peso": 1,
+      "ativa": true,
+      "parametros": {
+        "disciplina": "MAT",
+        "ordens": [
+          0,
+          1,
+          2
+        ],
+        "modo": "prefere"
+      }
+    },
+    {
+      "codigo": "R-MAT-ULT",
+      "tipo": "ultimo_horario",
+      "hard": false,
+      "peso": 1,
+      "ativa": true,
+      "parametros": {
+        "disciplina": "MAT"
+      }
+    },
+    {
+      "codigo": "R-HIS-GEO",
+      "tipo": "nao_mesmo_dia",
+      "hard": false,
+      "peso": 1,
+      "ativa": true,
+      "parametros": {
+        "disciplina_a": "HIS",
+        "disciplina_b": "GEO"
+      }
+    }
+  ]
+}
