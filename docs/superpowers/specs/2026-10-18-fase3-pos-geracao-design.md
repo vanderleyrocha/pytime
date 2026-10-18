@@ -1,12 +1,13 @@
 # PyTime — Fase 3: Pós-geração — Design
 
 Data: 2026-10-18
-Status: **rascunho para revisão** (decisões pendentes na §9)
+Status: **aprovado** em 18/10/2026 (decisões da §9 respondidas pelo usuário)
 Spec master: `2026-08-30-pytime-design.md` (§6 "Edição manual", "Cenários" e
 "Portal do professor" são a base desta fase)
 Pré-requisitos: Fase 2 concluída; motor com `avaliar()` /
 `AvaliadorPreparado` e processo `validador` no Fly (`POST /avaliar`, no ar
-desde 18/10/2026).
+desde 18/10/2026); integração com o escolajba na `master` (carga em
+`/importar` e exportação `quadro_horarios`, `docs/carga` e `docs/exportacao`).
 
 ## 1. Objetivo e decisões da fase
 
@@ -34,6 +35,8 @@ Decisões já tomadas (vinculantes):
   estável, o hash da instância é o mesmo em toda edição (cache do validador
   acerta) e editar não exige que nada mais tenha mudado. Se os cadastros
   mudaram depois da geração, a UI avisa (§4.5); reconciliar é gerar de novo.
+  Isso inclui reimportar um pacote de carga do escolajba (`/importar`), que
+  atualiza cadastros em modo "mesclar".
 - **Matriz cheia preservada por construção**: a edição é sempre uma **troca de
   duas aulas da mesma turma** (ou mover para um horário e trazer a aula de lá).
   Nunca existe horário vazio nem duplicado na turma, então a violação
@@ -138,16 +141,26 @@ nesta fase.
 
 - **Motor**: nada novo (já coberto por `test_avaliador.py`).
 - **Worker**: avaliação após geração grava `cenarios.avaliacao` (teste de
-  banco; roda com staging, §9-P1).
+  banco; roda com staging, P1).
 - **pgTAP**: colunas/índice/RPCs da migration (§3).
 - **App (vitest)**: aplicação de trocas e pilha desfazer/refazer (funções
   puras), montagem do corpo para o validador, tradução dos motivos
   estruturais novos, mapeamento de erros do validador.
 - **E2E (Playwright)**: abrir cenário → trocar duas aulas → ver veredito →
-  salvar → recarregar e ver a troca. Depende de ambiente de staging (§9-P1).
+  salvar → recarregar e ver a troca. Roda contra o staging (P1).
 - **Pronto**: suítes verdes no CI, deploy (Vercel + `fly deploy` do worker
   com a avaliação pós-geração), smoke manual com uma escola real, medição do
   p95 da validação no Fly registrada na spec master.
+
+### 4.6 Integração com o escolajba (já na `master`)
+
+A exportação `quadro_horarios` (`/grade/[cenarioId]/quadro-horarios`, JSON ou
+CSV) lê as `aulas_alocadas` do cenário, então **um cenário editado na 3A é
+exportado com as edições**, sem mudança no exportador. Com o cenário oficial
+da 3A, a tela passa a destacar "exportar o oficial" e o arquivo já traz
+`origem.oficial`. Cenários com exceções forçadas exportam normalmente, com as
+exceções listadas no cabeçalho da tela de grade (não no arquivo: o contrato
+`quadro-horarios.schema.json` não muda nesta fase).
 
 ## 6. Subfase 3B — Comparação e exportações
 
@@ -155,12 +168,13 @@ nesta fase.
   o mesmo conjunto de turmas): custo total e por regra lado a lado (das
   `avaliacao`), contagem de aulas que mudaram de horário, e grade por turma
   com as células diferentes destacadas.
-- **Exportar** o cenário (normalmente o oficial):
+- **Exportar** o cenário (normalmente o oficial), além da exportação
+  `quadro_horarios` do escolajba que já existe:
   - **Excel** (`.xlsx`, gerado no servidor em Route Handler com `exceljs`):
     uma aba por turma, uma por professor e uma geral;
   - **PDF**: página de impressão otimizada (`@media print`, uma turma ou um
-    professor por página) com "Imprimir / Salvar como PDF" do navegador. PDF
-    gerado no servidor só se a impressão do navegador não bastar (§9-P4).
+    professor por página) com "Imprimir / Salvar como PDF" do navegador
+    (decisão P4).
 - Testes: geração do xlsx (estrutura das abas) em vitest; E2E de download.
 
 ## 7. Subfase 3C — Portal do professor e notificações
@@ -177,7 +191,11 @@ nesta fase.
 - **Notificação**: quando o oficial muda (marcar outro ou salvar o oficial),
   e-mail para cada professor afetado com o resumo das mudanças das suas aulas.
   Envio assíncrono (tabela de saída processada pelo worker, para não
-  depender do tempo da Server Action). Provedor de e-mail: §9-P5.
+  depender do tempo da Server Action). Provedor: SMTP do Supabase (decisão
+  P5), o mesmo dos convites. O limite de envio do plano gratuito é baixo, então
+  o envio é agrupado (um e-mail por professor por mudança) e a fila respeita o
+  limite; se não bastar, troca-se o SMTP no painel do Supabase sem mudar
+  código.
 
 ## 8. Backlog herdado e dívida técnica
 
@@ -193,25 +211,18 @@ Entra na subfase indicada (critério: a subfase já mexe naquele código).
 | `ORDENS` derivado da grade; agrupar matriz por id de turno; bounds no `esquemaGrade` | Fase 2C | 3A (tela de grade) |
 | Parâmetros de regra órfãos após excluir disciplina; confirmação no excluir | Fase 2C | 3B |
 
-## 9. Decisões pendentes (para aprovação)
+## 9. Decisões (respondidas em 18/10/2026)
 
-- **P1 — Ambiente de staging** (recomendado: sim, antes da 3A): projeto
-  Supabase separado + secret `SUPABASE_DB_URL_STAGING` no GitHub, para os
-  testes de banco do worker, RLS e o E2E rodarem no CI. Sem ele, esses testes
-  continuam manuais.
-- **P2 — Edição só por troca na mesma turma** (recomendado: sim). Alternativa:
-  permitir mover aula entre turmas/trocar professor — muda atribuições, sai do
-  escopo de "ajuste de horário".
-- **P3 — Rascunho no cliente + salvar explícito** (recomendado) versus gravar
-  a cada troca. O rascunho evita versões intermediárias no banco e permite
-  desfazer.
-- **P4 — PDF por impressão do navegador** (recomendado para 3B) versus PDF
-  gerado no servidor (mais controle de layout, mais dependências).
-- **P5 — Provedor de e-mail da 3C**: SMTP do Supabase (já usado nos convites,
-  limites baixos no plano gratuito) versus Resend/Postmark (requer conta e
-  domínio verificado).
-- **P6 — Quem edita**: admin e coordenador (recomendado, igual aos cadastros)
-  ou só coordenador.
+- **P1 — Ambiente de staging: sim.** Projeto Supabase separado
+  (`pytime-staging`) com as mesmas migrations, e secret
+  `SUPABASE_DB_URL_STAGING` no GitHub para os testes de banco do worker, os
+  de RLS e o E2E rodarem no CI. Passo a passo em `docs/deploy.md` (§ Staging).
+  É pré-requisito da 3A.
+- **P2 — Edição só por troca na mesma turma: sim.**
+- **P3 — Rascunho no cliente + salvar explícito: sim.**
+- **P4 — PDF pela impressão do navegador: sim.**
+- **P5 — E-mail da 3C pelo SMTP do Supabase: sim** (ver limites na §7).
+- **P6 — Editam admin e coordenador: sim.**
 
 ## 10. Fora de escopo da Fase 3
 

@@ -54,6 +54,11 @@ jobs:
   worker:
     name: Worker (worker/)
     runs-on: ubuntu-latest
+    # um job por vez no banco de staging: os testes reivindicam a geração
+    # pendente mais antiga, e duas execuções paralelas roubariam o job uma da outra
+    concurrency:
+      group: banco-staging
+      cancel-in-progress: false
     env:
       SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL_STAGING }}
     steps:
