@@ -117,6 +117,9 @@ nunca ligue um worker do Fly contra o staging.
 
 ## Rotina de atualização
 
+Passo a passo detalhado (merge, migrations, Vercel, Fly, rollback):
+[`rotina-de-atualizacao.md`](rotina-de-atualizacao.md). Resumo:
+
 1. `git push` (master).
 2. Banco mudou? `npx supabase db push` (produção) **e**
    `npx supabase db push --db-url <staging>` + rodar os testes de RLS.
