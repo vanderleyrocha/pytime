@@ -25,24 +25,12 @@ export async function salvarDisponibilidades(
   if (!dados.success) return { erro: "Marcações inválidas." };
 
   const supabase = await criarClienteServidor();
-  const { error: erroApagar } = await supabase
-    .from("disponibilidades")
-    .delete()
-    .eq("professor_id", professorId)
-    .eq("unidade_id", perfil.unidade_id);
-  if (erroApagar) return { erro: "Não foi possível salvar." };
-
-  if (dados.data.length > 0) {
-    const { error } = await supabase.from("disponibilidades").insert(
-      dados.data.map((m) => ({
-        unidade_id: perfil.unidade_id,
-        professor_id: professorId,
-        slot_id: m.slot_id,
-        status: m.status,
-      })),
-    );
-    if (error) return { erro: "Não foi possível salvar." };
-  }
+  // Apaga e regrava numa transação: falha não deixa o professor sem marcações.
+  const { error } = await supabase.rpc("salvar_disponibilidades", {
+    p_professor: professorId,
+    p_marcacoes: dados.data,
+  });
+  if (error) return { erro: "Não foi possível salvar. Nada foi alterado." };
   revalidatePath(`/professores/${professorId}/disponibilidade`);
   return { sucesso: true };
 }
