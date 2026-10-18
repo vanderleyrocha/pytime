@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { lerTodas } from "@/lib/supabase/ler-todas";
 
 /** Linhas cruas das consultas por unidade, na forma do banco. */
 export type DadosUnidade = {
@@ -124,21 +125,36 @@ export async function buscarDadosUnidade(
       .eq("unidade_id", unidadeId),
     supabase.from("disciplinas").select("id, nome").eq("unidade_id", unidadeId),
     supabase.from("professores").select("id, nome").eq("unidade_id", unidadeId),
-    supabase
-      .from("disponibilidades")
-      .select("professor_id, slot_id, status")
-      .eq("unidade_id", unidadeId),
+    lerTodas((de, ate) =>
+      supabase
+        .from("disponibilidades")
+        .select("professor_id, slot_id, status")
+        .eq("unidade_id", unidadeId)
+        .order("id")
+        .range(de, ate),
+    ),
     supabase
       .from("recursos")
       .select("id, nome, capacidade")
       .eq("unidade_id", unidadeId),
-    supabase
-      .from("atribuicoes")
-      .select(
-        "id, professor_id, disciplina_id, turma_id, carga_semanal, geminadas",
-      )
-      .eq("unidade_id", unidadeId),
-    supabase.from("atribuicao_recursos").select("atribuicao_id, recurso_id"),
+    lerTodas((de, ate) =>
+      supabase
+        .from("atribuicoes")
+        .select(
+          "id, professor_id, disciplina_id, turma_id, carga_semanal, geminadas",
+        )
+        .eq("unidade_id", unidadeId)
+        .order("id")
+        .range(de, ate),
+    ),
+    lerTodas((de, ate) =>
+      supabase
+        .from("atribuicao_recursos")
+        .select("atribuicao_id, recurso_id")
+        .order("atribuicao_id")
+        .order("recurso_id")
+        .range(de, ate),
+    ),
     supabase
       .from("regras")
       .select("id, tipo, hard, peso, ativa, parametros")
