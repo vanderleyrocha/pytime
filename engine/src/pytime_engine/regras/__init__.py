@@ -5,6 +5,7 @@ from .base import REGISTRO, Regra, registrar
 __all__ = ["REGISTRO", "Regra", "registrar"]
 
 from . import (
+    aulas_juntas,  # noqa: F401,E402
     compactacao,  # noqa: F401,E402
     disponibilidade,  # noqa: F401,E402
     distribuicao,  # noqa: F401,E402
