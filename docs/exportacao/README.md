@@ -158,30 +158,44 @@ para um `LOAD DATA`.
 
 ## 4. Importação no escolajba
 
-Referência para quem for implementar o lado do escolajba (comando artisan ou
-tela em "Horários"):
+Use o comando artisan (código em `App\Services\Pytime\ImportadorQuadro`):
 
-1. O usuário cria (ou escolhe) o `horario` de destino: `calendario_id`,
+```bash
+php artisan pytime:importar-quadro <horario_id> quadro-horarios-xxxx.json [--dry-run]
+```
+
+1. Crie antes, na tela "Horários", o `horario` de destino: `calendario_id`,
    `descricao`, `tipo_aula`, `data_inicio`, `data_fim`. O arquivo **não**
    escolhe a vigência.
-2. Validar o arquivo contra o schema e conferir se cada `servidor_id`,
-   `disciplina_id` e `t{i}_id` existe na escola (`EscolaScope`). Para turmas,
-   conferir também se são do ano do calendário.
-3. Gravar todas as linhas em **uma transação**, com `horario_id` = destino e
+2. O comando valida o arquivo:
+   - formato e colunas (JSON da exportação ou o CSV com o cabeçalho exato);
+   - `dia_semana` de 0 a 6, `turno` de 1 a 4 e status `Aberto`;
+   - `servidor_id` existe e é da escola (inclusive por `servidor_escola`);
+   - `disciplina_id` existe;
+   - cada `t{i}_id` é turma da escola no ano do calendário;
+   - não há linhas repetidas para o mesmo servidor, disciplina, dia e turno.
+
+   Qualquer erro aborta sem gravar nada.
+3. As linhas entram em **uma transação**, com `horario_id` = destino e
    `rota_id`/`unidade_id` = `null`.
-4. **Importar sempre num `horario` vazio.** Substituir linhas de um horário
-   já usado quebraria o vínculo `aula_dadas.quadro_horario_id` das aulas já
-   lançadas. Para trocar o quadro no meio do ano, crie um `horario` novo com a
-   vigência nova, que é o mesmo fluxo de hoje.
-5. Depois de importar, rodar `QuadroHorarioController::chCompare` por
+4. **Importe sempre num `horario` vazio**, porque o comando recusa um horário
+   que já tem quadro. Substituir linhas de um horário já usado quebraria o
+   vínculo `aula_dadas.quadro_horario_id` das aulas já lançadas. Para trocar
+   o quadro no meio do ano, crie um `horario` novo com a vigência nova, que é
+   o mesmo fluxo de hoje.
+5. Depois de importar, rode `QuadroHorarioController::chCompare` por
    professor para conferir a CH prevista contra o quadro.
 
-## 5. Implementação no PyTime (Fase 3)
+## 5. Implementação no PyTime
 
-O exportador pertence ao **app**, como Server Action/rota de download em
-`/grade/[cenarioId]`, ou então ao **worker**. Nunca ao `engine/`: o motor não
-conhece cenários, banco nem formatos de terceiros (regra 1 do `CLAUDE.md`).
-A conversão da seção 2 é uma função pura de (alocações + atribuições + slots
-+ códigos externos) → linhas, testável sem banco, no mesmo espírito de
-`app/src/lib/instancia.ts`. Ela depende da coluna `codigo_externo` (ver
-`docs/carga/README.md`, seção 6).
+A exportação vive no **app**, nunca no `engine/`: o motor não conhece
+cenários, banco nem formatos de terceiros (regra 1 do `CLAUDE.md`).
+
+- `app/src/lib/exportacao/quadro-horarios.ts` é uma função pura que faz a
+  conversão da seção 2, com testes em
+  `app/tests/exportacao-quadro.test.ts`.
+- A rota `GET /grade/[cenarioId]/quadro-horarios` (`?formato=csv` para CSV)
+  faz o download. A página da grade tem os links "Exportar para o escolajba:
+  JSON · CSV".
+- Os erros da seção 2.5 voltam como texto (HTTP 422).
+- Os avisos não bloqueiam o download e seguem no cabeçalho `X-Avisos`.

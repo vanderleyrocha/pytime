@@ -211,22 +211,44 @@ prosseguir.
 - Turma sem nenhuma atribuição.
 - Recurso exigido por mais aulas simultâneas do que a capacidade comporta.
 
-## 6. Requisito no banco para reimportação
+## 6. Implementação
 
-O upsert por código exige guardar o código de origem. A migration do
-importador deve adicionar a coluna em `turnos`, `turmas`, `disciplinas`,
-`professores`, `recursos` e `regras`:
+**No banco.** A migration `supabase/migrations/20261018000000_carga_codigo_externo.sql`
+adiciona `codigo_externo` (único por unidade quando presente) em `turnos`,
+`turmas`, `disciplinas`, `professores`, `recursos` e `regras`, e cria a RPC
+`importar_pacote_carga(p_unidade_id, p_pacote)`:
 
-```sql
-alter table <tabela> add column codigo_externo text;
-create unique index <tabela>_codigo_externo_unico
-  on <tabela> (unidade_id, codigo_externo) where codigo_externo is not null;
-```
+- grava tudo numa única transação, por upsert no código ou na chave natural;
+- traduz os parâmetros de regra para UUIDs;
+- respeita o RLS: é security invoker e só aceita gestor.
 
 `slots`, `disponibilidades` e `atribuicoes` usam as chaves naturais da seção
 3, que o banco já garante com `unique (turno_id, dia, ordem)`,
 `unique (professor_id, slot_id)` e
-`unique (professor_id, disciplina_id, turma_id)`.
+`unique (professor_id, disciplina_id, turma_id)`. O teste fica em
+`supabase/tests/0008_carga.test.sql`.
+
+**No app.** A tela **Importar dados** (`/importar`, só para gestores) recebe
+o `.json` ou os `.csv`. O botão **Validar** mostra erros, avisos e quantos
+itens serão gravados. O botão **Importar** grava pela RPC. A validação fica
+em `app/src/lib/carga/` (`validacao.ts`, `csv.ts`, `arquivos.ts`), e o
+esquema zod `pacote.ts` espelha `pacote-carga.schema.json`. Mudou o formato?
+Atualize os dois.
+
+Cadastros criados à mão no PyTime ficam com `codigo_externo` nulo e nunca
+são casados com o pacote. Um turno digitado à mão e o mesmo turno vindo do
+pacote viram dois registros, então prefira importar numa unidade nova ou
+apagar antes os cadastros manuais equivalentes.
+
+**No escolajba.** O comando abaixo gera o pacote com o mapeamento da
+seção 7:
+
+```bash
+php artisan pytime:exportar-carga <ano> --escola=<INEP> [--saida=arquivo.json]
+```
+
+O código fica em `App\Services\Pytime\ExportadorCarga`. Os avisos (por
+exemplo, disciplina sem `ch_semanal` na matriz) aparecem no terminal.
 
 ## 7. Mapeamento a partir do escolajba
 
