@@ -88,6 +88,18 @@ def gravar_resultado_concluido(
     return str(cenario_id)
 
 
+def gravar_avaliacao(
+    conn: psycopg.Connection, cenario_id: str, avaliacao: dict[str, Any]
+) -> None:
+    """Grava a avaliação exata (motor) da grade do cenário."""
+    with conn.cursor() as cur:
+        cur.execute(
+            "update cenarios set avaliacao = %s::jsonb, avaliado_em = now()"
+            " where id = %s",
+            (json.dumps(avaliacao), cenario_id),
+        )
+
+
 def gravar_inviavel(
     conn: psycopg.Connection,
     geracao_id: str,
