@@ -119,8 +119,10 @@ O arquivo só é gerado se todas estas checagens passarem:
 4. O mesmo professor não aparece em duas linhas de **turnos diferentes** com
    o mesmo dia e tempo. Os turnos do PyTime são grades independentes, então
    um professor alocado em `MANHA` ordem 0 e em `INTEGRAL` ordem 0 colide no
-   T1 do escolajba. Essa colisão é **aviso**, e o escolajba também a destaca
-   em vermelho na tela do quadro.
+   T1 do escolajba. No PyTime essa colisão é só **aviso**, e o download
+   continua liberado para revisão. O `pytime:importar-quadro`, porém,
+   **recusa** o arquivo, porque no escolajba isso é aula dupla no mesmo
+   horário. Corrija a grade (ou o turno das turmas) antes de importar.
 5. O nº de tempos preenchidos é igual ao nº de aulas alocadas do cenário.
 
 ## 3. Formatos
@@ -173,6 +175,9 @@ php artisan pytime:importar-quadro <horario_id> quadro-horarios-xxxx.json [--dry
    - `servidor_id` existe e é da escola (inclusive por `servidor_escola`);
    - `disciplina_id` existe;
    - cada `t{i}_id` é turma da escola no ano do calendário;
+   - cada tempo está na faixa do turno da linha (manhã T1–T4, tarde T5–T7) e
+     a turma é desse turno;
+   - nenhuma turma e nenhum professor tem duas aulas no mesmo tempo do dia;
    - não há linhas repetidas para o mesmo servidor, disciplina, dia e turno.
 
    Qualquer erro aborta sem gravar nada.
