@@ -7,7 +7,7 @@ em vez de digitar cadastros à mão.
 | Arquivo | Conteúdo |
 |---|---|
 | `pacote-carga.schema.json` | JSON Schema (draft 2020-12) do **pacote de carga** — contrato vinculante |
-| `exemplos/pacote-exemplo.json` | pacote completo e válido (2 turmas, 8 disciplinas, 6 professores) que o motor resolve com status `otimo` |
+| `exemplos/pacote-exemplo.json` | pacote completo e válido (turno integral com 7 tempos, 2 turmas, 9 disciplinas, 6 professores) que o motor resolve com status `otimo` |
 | `modelos/*.csv` | os mesmos dados no formato CSV, um arquivo por entidade (servem de modelo de planilha) |
 
 ## 1. Princípios
@@ -82,7 +82,7 @@ mostra o default, quando existe.
 ### turnos → tabela `turnos`
 | Campo | Tipo | Obr. | Descrição |
 |---|---|---|---|
-| `codigo` | código | ✔ | ex.: `MANHA`, `TARDE`, `INTEGRAL` |
+| `codigo` | código | ✔ | `MANHA`, `TARDE`, `NOITE` ou `INTEGRAL` quando o horário for exportado de volta ao escolajba (ver `docs/exportacao`) |
 | `nome` | texto | ✔ | ex.: "Manhã" |
 
 ### horarios → tabela `slots`
@@ -238,7 +238,7 @@ exportação equivale a uma escola (`escolas.id` = INEP) num ano letivo
 |---|---|---|
 | `origem.escola_inep` | `escolas.id` | o id da escola já é o código INEP |
 | `turnos` | valores distintos de `turmas.turno` no ano | 1 → `MANHA`, 2 → `TARDE`, 3 → `NOITE`, 4 → `INTEGRAL` (`Falta::TURNOS`) |
-| `horarios` | **não há tabela**: gerar a partir de `Falta::TEMPOS` | integral = tempos 1–7 → `ordem` 0–6, dias 0–4. As horas existem só em `AulaController` (opcional) |
+| `horarios` | **não há tabela**: gerar a partir de `Falta::TEMPOS*` | `MANHA` = T1–T4 → `ordem` 0–3; `TARDE` = T5–T7 → `ordem` 0–2; `INTEGRAL` = T1–T7 → `ordem` 0–6; dias 0–4. As horas existem só em `AulaController` (opcional) |
 | `turmas` | `turmas` (do `ano`, status ≠ Encerrada) | `codigo` = `TUR-{id}`; `nome` = `nome_abreviado` ou `nome` |
 | `disciplinas` | `disciplinas` presentes em `disciplina_serie` do ano | `codigo` = `DIS-{id}` (a tabela não tem código próprio); `nome` = `nome` |
 | `professores` | `servidores` com `funcao = 'Professor'` e `ativo` | `codigo` = `SRV-{id}`. **Não** usar `matricula`, que não é única no banco |
@@ -265,3 +265,7 @@ Pontos de atenção:
   fica incompleta, e o importador avisa.
 - **Conferência.** `QuadroHorarioController::chCompare` já compara a CH
   prevista com o quadro. Vale rodar essa comparação antes de exportar.
+- **Volta ao escolajba.** O horário gerado volta como linhas de
+  `quadro_horarios` (`docs/exportacao/README.md`). Essa volta só funciona se
+  os códigos `SRV-{id}`, `DIS-{id}` e `TUR-{id}` e os códigos de turno da
+  tabela acima forem mantidos.

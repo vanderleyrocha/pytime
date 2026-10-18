@@ -1,0 +1,73 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://pytime.app/schemas/exportacao-quadro-horarios/1.0.json",
+  "title": "Exportação de horário do PyTime no padrão quadro_horarios do escolajba",
+  "description": "Alocações de um cenário do PyTime convertidas para linhas da tabela `quadro_horarios` do escolajba. Cada linha é professor × disciplina × dia da semana × turno, e `t{i}_id` é a turma atendida no tempo i do dia. Ver docs/exportacao/README.md.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["versao", "origem", "quadro_horarios"],
+  "properties": {
+    "versao": { "const": "1.0" },
+    "origem": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["sistema", "cenario_id", "status", "gerado_em"],
+      "properties": {
+        "sistema": { "const": "pytime" },
+        "cenario_id": { "type": "string", "description": "UUID do cenário exportado." },
+        "status": { "enum": ["otimo", "viavel"], "description": "Status da geração que produziu o cenário." },
+        "oficial": { "type": "boolean", "description": "Se o cenário está marcado como oficial no PyTime." },
+        "escola_inep": { "type": "string", "pattern": "^[0-9]{8}$" },
+        "ano_letivo": { "type": "integer", "minimum": 2000, "maximum": 2100 },
+        "gerado_em": { "type": "string", "format": "date-time" }
+      }
+    },
+    "quadro_horarios": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/linha" }
+    }
+  },
+  "$defs": {
+    "id": { "type": "integer", "minimum": 1, "description": "id da tabela correspondente no escolajba." },
+    "turma_no_tempo": {
+      "type": ["integer", "null"],
+      "minimum": 1,
+      "description": "turmas.id atendida neste tempo; null = tempo livre."
+    },
+    "status": { "const": "Aberto", "description": "A exportação sempre grava 'Aberto' (tempo com turma, ou livre quando t{i}_id é null). 'Encerrado' é estado operacional do escolajba." },
+    "linha": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "servidor_id", "disciplina_id", "dia_semana", "turno", "ordem",
+        "t1_id", "t1_status", "t2_id", "t2_status", "t3_id", "t3_status",
+        "t4_id", "t4_status", "t5_id", "t5_status", "t6_id", "t6_status",
+        "t7_id", "t7_status"
+      ],
+      "properties": {
+        "servidor_id": { "$ref": "#/$defs/id" },
+        "disciplina_id": { "$ref": "#/$defs/id" },
+        "dia_semana": { "type": "integer", "minimum": 0, "maximum": 6, "description": "Convenção do escolajba: 0 = domingo, 1 = segunda, ..., 6 = sábado." },
+        "turno": { "enum": [1, 2, 3, 4], "description": "1 = Manhã, 2 = Tarde, 3 = Noite, 4 = Integral." },
+        "ordem": { "type": ["integer", "null"], "minimum": 0, "description": "Ordem manual de exibição no escolajba; a exportação grava null." },
+        "t1_id": { "$ref": "#/$defs/turma_no_tempo" }, "t1_status": { "$ref": "#/$defs/status" },
+        "t2_id": { "$ref": "#/$defs/turma_no_tempo" }, "t2_status": { "$ref": "#/$defs/status" },
+        "t3_id": { "$ref": "#/$defs/turma_no_tempo" }, "t3_status": { "$ref": "#/$defs/status" },
+        "t4_id": { "$ref": "#/$defs/turma_no_tempo" }, "t4_status": { "$ref": "#/$defs/status" },
+        "t5_id": { "$ref": "#/$defs/turma_no_tempo" }, "t5_status": { "$ref": "#/$defs/status" },
+        "t6_id": { "$ref": "#/$defs/turma_no_tempo" }, "t6_status": { "$ref": "#/$defs/status" },
+        "t7_id": { "$ref": "#/$defs/turma_no_tempo" }, "t7_status": { "$ref": "#/$defs/status" }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "turno": { "const": 1 } } },
+          "then": { "properties": { "t5_id": { "type": "null" }, "t6_id": { "type": "null" }, "t7_id": { "type": "null" } } }
+        },
+        {
+          "if": { "properties": { "turno": { "const": 2 } } },
+          "then": { "properties": { "t1_id": { "type": "null" }, "t2_id": { "type": "null" }, "t3_id": { "type": "null" }, "t4_id": { "type": "null" } } }
+        }
+      ]
+    }
+  }
+}

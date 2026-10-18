@@ -9,231 +9,305 @@
   },
   "turnos": [
     {
-      "codigo": "MANHA",
-      "nome": "Manhã"
+      "codigo": "INTEGRAL",
+      "nome": "Integral"
     }
   ],
   "horarios": [
     {
-      "turno": "MANHA",
+      "turno": "INTEGRAL",
       "dia": 0,
       "ordem": 0,
       "hora_inicio": "07:00",
       "hora_fim": "07:50"
     },
     {
-      "turno": "MANHA",
+      "turno": "INTEGRAL",
       "dia": 0,
       "ordem": 1,
       "hora_inicio": "07:50",
       "hora_fim": "08:40"
     },
     {
-      "turno": "MANHA",
+      "turno": "INTEGRAL",
       "dia": 0,
       "ordem": 2,
       "hora_inicio": "08:40",
       "hora_fim": "09:30"
     },
     {
-      "turno": "MANHA",
+      "turno": "INTEGRAL",
       "dia": 0,
       "ordem": 3,
       "hora_inicio": "09:50",
       "hora_fim": "10:40"
     },
     {
-      "turno": "MANHA",
+      "turno": "INTEGRAL",
       "dia": 0,
       "ordem": 4,
-      "hora_inicio": "10:40",
-      "hora_fim": "11:30"
+      "hora_inicio": "13:30",
+      "hora_fim": "14:20"
     },
     {
-      "turno": "MANHA",
+      "turno": "INTEGRAL",
+      "dia": 0,
+      "ordem": 5,
+      "hora_inicio": "14:20",
+      "hora_fim": "15:10"
+    },
+    {
+      "turno": "INTEGRAL",
+      "dia": 0,
+      "ordem": 6,
+      "hora_inicio": "15:30",
+      "hora_fim": "16:20"
+    },
+    {
+      "turno": "INTEGRAL",
       "dia": 1,
       "ordem": 0,
       "hora_inicio": "07:00",
       "hora_fim": "07:50"
     },
     {
-      "turno": "MANHA",
+      "turno": "INTEGRAL",
       "dia": 1,
       "ordem": 1,
       "hora_inicio": "07:50",
       "hora_fim": "08:40"
     },
     {
-      "turno": "MANHA",
+      "turno": "INTEGRAL",
       "dia": 1,
       "ordem": 2,
       "hora_inicio": "08:40",
       "hora_fim": "09:30"
     },
     {
-      "turno": "MANHA",
+      "turno": "INTEGRAL",
       "dia": 1,
       "ordem": 3,
       "hora_inicio": "09:50",
       "hora_fim": "10:40"
     },
     {
-      "turno": "MANHA",
+      "turno": "INTEGRAL",
       "dia": 1,
       "ordem": 4,
-      "hora_inicio": "10:40",
-      "hora_fim": "11:30"
+      "hora_inicio": "13:30",
+      "hora_fim": "14:20"
     },
     {
-      "turno": "MANHA",
+      "turno": "INTEGRAL",
+      "dia": 1,
+      "ordem": 5,
+      "hora_inicio": "14:20",
+      "hora_fim": "15:10"
+    },
+    {
+      "turno": "INTEGRAL",
+      "dia": 1,
+      "ordem": 6,
+      "hora_inicio": "15:30",
+      "hora_fim": "16:20"
+    },
+    {
+      "turno": "INTEGRAL",
       "dia": 2,
       "ordem": 0,
       "hora_inicio": "07:00",
       "hora_fim": "07:50"
     },
     {
-      "turno": "MANHA",
+      "turno": "INTEGRAL",
       "dia": 2,
       "ordem": 1,
       "hora_inicio": "07:50",
       "hora_fim": "08:40"
     },
     {
-      "turno": "MANHA",
+      "turno": "INTEGRAL",
       "dia": 2,
       "ordem": 2,
       "hora_inicio": "08:40",
       "hora_fim": "09:30"
     },
     {
-      "turno": "MANHA",
+      "turno": "INTEGRAL",
       "dia": 2,
       "ordem": 3,
       "hora_inicio": "09:50",
       "hora_fim": "10:40"
     },
     {
-      "turno": "MANHA",
+      "turno": "INTEGRAL",
       "dia": 2,
       "ordem": 4,
-      "hora_inicio": "10:40",
-      "hora_fim": "11:30"
+      "hora_inicio": "13:30",
+      "hora_fim": "14:20"
     },
     {
-      "turno": "MANHA",
+      "turno": "INTEGRAL",
+      "dia": 2,
+      "ordem": 5,
+      "hora_inicio": "14:20",
+      "hora_fim": "15:10"
+    },
+    {
+      "turno": "INTEGRAL",
+      "dia": 2,
+      "ordem": 6,
+      "hora_inicio": "15:30",
+      "hora_fim": "16:20"
+    },
+    {
+      "turno": "INTEGRAL",
       "dia": 3,
       "ordem": 0,
       "hora_inicio": "07:00",
       "hora_fim": "07:50"
     },
     {
-      "turno": "MANHA",
+      "turno": "INTEGRAL",
       "dia": 3,
       "ordem": 1,
       "hora_inicio": "07:50",
       "hora_fim": "08:40"
     },
     {
-      "turno": "MANHA",
+      "turno": "INTEGRAL",
       "dia": 3,
       "ordem": 2,
       "hora_inicio": "08:40",
       "hora_fim": "09:30"
     },
     {
-      "turno": "MANHA",
+      "turno": "INTEGRAL",
       "dia": 3,
       "ordem": 3,
       "hora_inicio": "09:50",
       "hora_fim": "10:40"
     },
     {
-      "turno": "MANHA",
+      "turno": "INTEGRAL",
       "dia": 3,
       "ordem": 4,
-      "hora_inicio": "10:40",
-      "hora_fim": "11:30"
+      "hora_inicio": "13:30",
+      "hora_fim": "14:20"
     },
     {
-      "turno": "MANHA",
+      "turno": "INTEGRAL",
+      "dia": 3,
+      "ordem": 5,
+      "hora_inicio": "14:20",
+      "hora_fim": "15:10"
+    },
+    {
+      "turno": "INTEGRAL",
+      "dia": 3,
+      "ordem": 6,
+      "hora_inicio": "15:30",
+      "hora_fim": "16:20"
+    },
+    {
+      "turno": "INTEGRAL",
       "dia": 4,
       "ordem": 0,
       "hora_inicio": "07:00",
       "hora_fim": "07:50"
     },
     {
-      "turno": "MANHA",
+      "turno": "INTEGRAL",
       "dia": 4,
       "ordem": 1,
       "hora_inicio": "07:50",
       "hora_fim": "08:40"
     },
     {
-      "turno": "MANHA",
+      "turno": "INTEGRAL",
       "dia": 4,
       "ordem": 2,
       "hora_inicio": "08:40",
       "hora_fim": "09:30"
     },
     {
-      "turno": "MANHA",
+      "turno": "INTEGRAL",
       "dia": 4,
       "ordem": 3,
       "hora_inicio": "09:50",
       "hora_fim": "10:40"
     },
     {
-      "turno": "MANHA",
+      "turno": "INTEGRAL",
       "dia": 4,
       "ordem": 4,
-      "hora_inicio": "10:40",
-      "hora_fim": "11:30"
+      "hora_inicio": "13:30",
+      "hora_fim": "14:20"
+    },
+    {
+      "turno": "INTEGRAL",
+      "dia": 4,
+      "ordem": 5,
+      "hora_inicio": "14:20",
+      "hora_fim": "15:10"
+    },
+    {
+      "turno": "INTEGRAL",
+      "dia": 4,
+      "ordem": 6,
+      "hora_inicio": "15:30",
+      "hora_fim": "16:20"
     }
   ],
   "turmas": [
     {
       "codigo": "TUR-201",
       "nome": "6º ano A",
-      "turno": "MANHA"
+      "turno": "INTEGRAL"
     },
     {
       "codigo": "TUR-202",
       "nome": "6º ano B",
-      "turno": "MANHA"
+      "turno": "INTEGRAL"
     }
   ],
   "disciplinas": [
     {
-      "codigo": "POR",
+      "codigo": "DIS-11",
       "nome": "Língua Portuguesa"
     },
     {
-      "codigo": "MAT",
+      "codigo": "DIS-12",
       "nome": "Matemática"
     },
     {
-      "codigo": "CIE",
+      "codigo": "DIS-13",
       "nome": "Ciências"
     },
     {
-      "codigo": "HIS",
+      "codigo": "DIS-14",
       "nome": "História"
     },
     {
-      "codigo": "GEO",
+      "codigo": "DIS-15",
       "nome": "Geografia"
     },
     {
-      "codigo": "ING",
+      "codigo": "DIS-16",
       "nome": "Língua Inglesa"
     },
     {
-      "codigo": "EDF",
+      "codigo": "DIS-17",
       "nome": "Educação Física"
     },
     {
-      "codigo": "ART",
+      "codigo": "DIS-18",
       "nome": "Arte"
+    },
+    {
+      "codigo": "DIS-19",
+      "nome": "Projeto de Vida"
     }
   ],
   "professores": [
@@ -272,42 +346,56 @@
   "disponibilidades": [
     {
       "professor": "SRV-104",
-      "turno": "MANHA",
+      "turno": "INTEGRAL",
       "dia": 4,
       "ordem": 0,
       "status": "indisponivel"
     },
     {
       "professor": "SRV-104",
-      "turno": "MANHA",
+      "turno": "INTEGRAL",
       "dia": 4,
       "ordem": 1,
       "status": "indisponivel"
     },
     {
       "professor": "SRV-104",
-      "turno": "MANHA",
+      "turno": "INTEGRAL",
       "dia": 4,
       "ordem": 2,
       "status": "indisponivel"
     },
     {
       "professor": "SRV-104",
-      "turno": "MANHA",
+      "turno": "INTEGRAL",
       "dia": 4,
       "ordem": 3,
       "status": "indisponivel"
     },
     {
       "professor": "SRV-104",
-      "turno": "MANHA",
+      "turno": "INTEGRAL",
       "dia": 4,
       "ordem": 4,
       "status": "indisponivel"
     },
     {
+      "professor": "SRV-104",
+      "turno": "INTEGRAL",
+      "dia": 4,
+      "ordem": 5,
+      "status": "indisponivel"
+    },
+    {
+      "professor": "SRV-104",
+      "turno": "INTEGRAL",
+      "dia": 4,
+      "ordem": 6,
+      "status": "indisponivel"
+    },
+    {
       "professor": "SRV-102",
-      "turno": "MANHA",
+      "turno": "INTEGRAL",
       "dia": 0,
       "ordem": 0,
       "status": "evita"
@@ -316,31 +404,31 @@
   "atribuicoes": [
     {
       "professor": "SRV-101",
-      "disciplina": "POR",
+      "disciplina": "DIS-11",
       "turma": "TUR-201",
-      "carga_semanal": 5,
+      "carga_semanal": 6,
       "geminadas": 0,
       "recursos": []
     },
     {
       "professor": "SRV-102",
-      "disciplina": "MAT",
+      "disciplina": "DIS-12",
       "turma": "TUR-201",
-      "carga_semanal": 5,
+      "carga_semanal": 6,
       "geminadas": 0,
       "recursos": []
     },
     {
       "professor": "SRV-103",
-      "disciplina": "CIE",
+      "disciplina": "DIS-13",
       "turma": "TUR-201",
-      "carga_semanal": 3,
+      "carga_semanal": 4,
       "geminadas": 0,
       "recursos": []
     },
     {
       "professor": "SRV-104",
-      "disciplina": "HIS",
+      "disciplina": "DIS-14",
       "turma": "TUR-201",
       "carga_semanal": 3,
       "geminadas": 0,
@@ -348,7 +436,7 @@
     },
     {
       "professor": "SRV-103",
-      "disciplina": "GEO",
+      "disciplina": "DIS-15",
       "turma": "TUR-201",
       "carga_semanal": 3,
       "geminadas": 0,
@@ -356,57 +444,65 @@
     },
     {
       "professor": "SRV-105",
-      "disciplina": "ING",
+      "disciplina": "DIS-16",
       "turma": "TUR-201",
-      "carga_semanal": 2,
+      "carga_semanal": 3,
       "geminadas": 0,
       "recursos": []
     },
     {
       "professor": "SRV-106",
-      "disciplina": "EDF",
+      "disciplina": "DIS-17",
       "turma": "TUR-201",
-      "carga_semanal": 2,
+      "carga_semanal": 3,
       "geminadas": 1,
       "recursos": [
         "QUADRA"
       ]
     },
     {
-      "professor": "SRV-101",
-      "disciplina": "ART",
+      "professor": "SRV-105",
+      "disciplina": "DIS-18",
       "turma": "TUR-201",
-      "carga_semanal": 2,
+      "carga_semanal": 3,
       "geminadas": 1,
       "recursos": []
     },
     {
+      "professor": "SRV-104",
+      "disciplina": "DIS-19",
+      "turma": "TUR-201",
+      "carga_semanal": 4,
+      "geminadas": 0,
+      "recursos": []
+    },
+    {
       "professor": "SRV-101",
-      "disciplina": "POR",
+      "disciplina": "DIS-11",
       "turma": "TUR-202",
-      "carga_semanal": 5,
+      "carga_semanal": 6,
       "geminadas": 0,
       "recursos": []
     },
     {
       "professor": "SRV-102",
-      "disciplina": "MAT",
+      "disciplina": "DIS-12",
       "turma": "TUR-202",
-      "carga_semanal": 5,
+      "carga_semanal": 6,
       "geminadas": 0,
       "recursos": []
     },
     {
       "professor": "SRV-103",
-      "disciplina": "CIE",
+      "disciplina": "DIS-13",
       "turma": "TUR-202",
-      "carga_semanal": 3,
+      "carga_semanal": 4,
       "geminadas": 0,
       "recursos": []
     },
     {
       "professor": "SRV-104",
-      "disciplina": "HIS",
+      "disciplina": "DIS-14",
       "turma": "TUR-202",
       "carga_semanal": 3,
       "geminadas": 0,
@@ -414,7 +510,7 @@
     },
     {
       "professor": "SRV-103",
-      "disciplina": "GEO",
+      "disciplina": "DIS-15",
       "turma": "TUR-202",
       "carga_semanal": 3,
       "geminadas": 0,
@@ -422,28 +518,36 @@
     },
     {
       "professor": "SRV-105",
-      "disciplina": "ING",
+      "disciplina": "DIS-16",
       "turma": "TUR-202",
-      "carga_semanal": 2,
+      "carga_semanal": 3,
       "geminadas": 0,
       "recursos": []
     },
     {
       "professor": "SRV-106",
-      "disciplina": "EDF",
+      "disciplina": "DIS-17",
       "turma": "TUR-202",
-      "carga_semanal": 2,
+      "carga_semanal": 3,
       "geminadas": 1,
       "recursos": [
         "QUADRA"
       ]
     },
     {
-      "professor": "SRV-101",
-      "disciplina": "ART",
+      "professor": "SRV-105",
+      "disciplina": "DIS-18",
       "turma": "TUR-202",
-      "carga_semanal": 2,
+      "carga_semanal": 3,
       "geminadas": 1,
+      "recursos": []
+    },
+    {
+      "professor": "SRV-104",
+      "disciplina": "DIS-19",
+      "turma": "TUR-202",
+      "carga_semanal": 4,
+      "geminadas": 0,
       "recursos": []
     }
   ],
@@ -497,7 +601,7 @@
       "peso": 1,
       "ativa": true,
       "parametros": {
-        "disciplina": "MAT",
+        "disciplina": "DIS-12",
         "ordens": [
           0,
           1,
@@ -513,7 +617,7 @@
       "peso": 1,
       "ativa": true,
       "parametros": {
-        "disciplina": "MAT"
+        "disciplina": "DIS-12"
       }
     },
     {
@@ -523,8 +627,8 @@
       "peso": 1,
       "ativa": true,
       "parametros": {
-        "disciplina_a": "HIS",
-        "disciplina_b": "GEO"
+        "disciplina_a": "DIS-14",
+        "disciplina_b": "DIS-15"
       }
     }
   ]

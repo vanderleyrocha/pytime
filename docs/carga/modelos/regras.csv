@@ -4,6 +4,6 @@ R-GEM;geminadas;true;1;true;
 R-REC;recurso_compartilhado;true;1;true;
 R-JAN;janelas_professor;false;3;true;
 R-DIST;distribuicao_disciplina;false;2;true;"{""max_por_dia"": 2}"
-R-MAT-CEDO;preferencia_disciplina;false;1;true;"{""disciplina"": ""MAT"", ""ordens"": [0, 1, 2], ""modo"": ""prefere""}"
-R-MAT-ULT;ultimo_horario;false;1;true;"{""disciplina"": ""MAT""}"
-R-HIS-GEO;nao_mesmo_dia;false;1;true;"{""disciplina_a"": ""HIS"", ""disciplina_b"": ""GEO""}"
+R-MAT-CEDO;preferencia_disciplina;false;1;true;"{""disciplina"": ""DIS-12"", ""ordens"": [0, 1, 2], ""modo"": ""prefere""}"
+R-MAT-ULT;ultimo_horario;false;1;true;"{""disciplina"": ""DIS-12""}"
+R-HIS-GEO;nao_mesmo_dia;false;1;true;"{""disciplina_a"": ""DIS-14"", ""disciplina_b"": ""DIS-15""}"
