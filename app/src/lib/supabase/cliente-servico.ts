@@ -1,7 +1,8 @@
 import "server-only";
 import { createClient } from "@supabase/supabase-js";
 
-// service_role: bypassa RLS. Usar APENAS onde a task mandar (convites).
+// service_role: bypassa RLS. Usar APENAS em convites e nas RPCs de cenário
+// (grade/[cenarioId]/actions.ts), sempre depois de conferir o papel.
 export function criarClienteServico() {
   return createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
