@@ -65,10 +65,45 @@ fly deploy --remote-only
 - Logs: `fly logs --app pytime-worker` (deve mostrar "Worker PyTime iniciado.",
   "Validador PyTime ouvindo na porta 8080." e, sem jobs, silêncio — poll de 5 s).
 
+## 4. Staging (testes de banco no CI)
+
+Projeto Supabase separado, só para testes: o CI roda nele os testes de banco
+do worker e os de RLS (pgTAP). **Nunca** aponte o CI para o banco de produção,
+porque os testes do worker reivindicam a geração pendente mais antiga. E
+nunca ligue um worker do Fly contra o staging.
+
+1. **Criar o projeto**: dashboard do Supabase → *New project* → nome
+   `pytime-staging`, região *South America (São Paulo)*, senha forte do banco
+   (guarde no gerenciador de senhas). O plano gratuito permite 2 projetos
+   ativos por organização (produção + staging).
+2. **Aplicar as migrations** (da raiz do repo), sem trocar o `link` da
+   produção. Use a URL do *Session pooler*: dashboard do staging →
+   *Connect* → *Session pooler*. Ela tem o formato
+   `postgresql://postgres.<ref-staging>:<SENHA>@aws-0-sa-east-1.pooler.supabase.com:5432/postgres`.
+
+   ```bash
+   npx supabase db push --db-url "<URL do session pooler do staging>"
+   ```
+3. **Conferir localmente** (a mesma URL):
+
+   ```bash
+   # PowerShell: $env:SUPABASE_DB_URL = "<URL>"
+   SUPABASE_DB_URL="<URL>" python supabase/tests/rodar_testes.py   # RESULTADO: OK
+   cd worker && SUPABASE_DB_URL="<URL>" pytest -q                  # sem "skipped"
+   ```
+4. **Secret no GitHub**: repositório → *Settings* → *Secrets and variables* →
+   *Actions* → *New repository secret*, nome `SUPABASE_DB_URL_STAGING`, valor =
+   a URL do **session pooler**. Os runners do GitHub não têm IPv6, e o host
+   direto `db.<ref>.supabase.co` só responde por IPv6.
+5. **Manter em dia**: toda migration nova vai também para o staging (passo 2)
+   antes do PR que depende dela. O projeto gratuito **pausa após ~7 dias sem
+   uso**; se o CI falhar com erro de conexão, reative no dashboard.
+
 ## Rotina de atualização
 
 1. `git push` (master).
-2. Banco mudou? `npx supabase db push` + rodar os testes de RLS.
+2. Banco mudou? `npx supabase db push` (produção) **e**
+   `npx supabase db push --db-url <staging>` + rodar os testes de RLS.
 3. App: `cd app && vercel deploy --prod`.
 4. Worker, validador ou engine mudou? `fly deploy --remote-only` (atualiza os
    dois processos).
