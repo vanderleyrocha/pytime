@@ -14,5 +14,6 @@ from . import (
     mesmo_dia,  # noqa: F401,E402
     preferencia_slot,  # noqa: F401,E402
     recurso,  # noqa: F401,E402
+    sincronizada,  # noqa: F401,E402
     ultimo_horario,  # noqa: F401,E402
 )
