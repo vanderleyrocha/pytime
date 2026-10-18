@@ -127,10 +127,16 @@ def test_sincronizada_soft_marca_as_aulas_fora_de_sincronia():
     assert [(o.descricao, o.celulas) for o in custo.ocorrencias] == [
         (
             "Eletiva fora de sincronia em T2 (terça, 1º horário)",
-            [Celula(slot_id="manha-d1-h0", turma_id="t1")],
+            [
+                Celula(slot_id="manha-d1-h0", turma_id="t1"),
+                Celula(slot_id="manha-d1-h0", turma_id="t2"),
+            ],
         ),
         (
             "Eletiva fora de sincronia em T2 (terça, 2º horário)",
-            [Celula(slot_id="manha-d1-h1", turma_id="t2")],
+            [
+                Celula(slot_id="manha-d1-h1", turma_id="t1"),
+                Celula(slot_id="manha-d1-h1", turma_id="t2"),
+            ],
         ),
     ]

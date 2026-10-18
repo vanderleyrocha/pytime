@@ -8,10 +8,13 @@ a semântica de "onde" fica na regra, e o núcleo só consolida.
 
 from collections import defaultdict
 from collections.abc import Callable, Iterable
-from typing import Literal
+from typing import TYPE_CHECKING, Any, Literal
 
 from .instancia import Instancia, Slot
-from .resultado import AulaAlocada, Celula
+from .resultado import AulaAlocada, Celula, CustoRegra, Ocorrencia
+
+if TYPE_CHECKING:
+    from .modelo import ContextoModelo
 
 #: em qual grade a marca aparece: a da turma ou a do professor
 Eixo = Literal["turma", "professor"]
@@ -108,3 +111,56 @@ def janelas_em(professor_id: str, slot_ids: Iterable[str]) -> Localizador:
     """Localizador das janelas do professor num dia (slots em ordem)."""
     slots = tuple(slot_ids)
     return lambda grade: grade.janelas(professor_id, slots)
+
+
+def turmas_em(turma_ids: Iterable[str], slot_ids: Iterable[str]) -> Localizador:
+    """Localizador dos horários nas turmas dados, seja qual for a aula neles."""
+    celulas = [
+        Celula(slot_id=slot_id, turma_id=turma_id)
+        for slot_id in slot_ids
+        for turma_id in turma_ids
+    ]
+    return lambda _grade: list(celulas)
+
+
+def consolidar_custos(
+    ctx: "ContextoModelo", valor: Callable[[Any], int], grade: list[AulaAlocada]
+) -> tuple[list[CustoRegra], int]:
+    """Custo por regra e as ocorrências (termos > 0) com suas células.
+
+    `valor` lê o valor de uma expressão na solução; solver e avaliador usam
+    esta mesma função para reportarem do mesmo jeito.
+
+    Limitação: termos só limitados por baixo (excesso, janelas...) podem
+    ficar acima do real numa solução `viavel` da geração; o avaliador prova
+    o ótimo com a grade fixada, então suas ocorrências são exatas.
+    """
+    resolvida = GradeResolvida(ctx.instancia, grade)
+    custos = []
+    total = 0
+    for regra_id, termos in ctx.custos.items():
+        custo = 0
+        ocorrencias = []
+        for termo in termos:
+            v = valor(termo.var)
+            custo += termo.peso * v
+            if v > 0:
+                ocorrencias.append(
+                    Ocorrencia(
+                        descricao=termo.descricao,
+                        unidades=v,
+                        custo=termo.peso * v,
+                        celulas=termo.localizar(resolvida) if termo.localizar else [],
+                    )
+                )
+        custos.append(
+            CustoRegra(
+                regra_id=regra_id,
+                tipo=termos[0].tipo,
+                custo=custo,
+                detalhes=[o.descricao for o in ocorrencias],
+                ocorrencias=ocorrencias,
+            )
+        )
+        total += custo
+    return custos, total

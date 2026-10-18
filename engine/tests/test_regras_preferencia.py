@@ -98,3 +98,47 @@ def test_preferencia_disciplina_marca_a_aula_na_grade_da_turma():
     assert ocorrencia.descricao == (
         "Turma 1 – Mat: aula em horário evitado (segunda, 4º horário)"
     )
+
+
+def test_preferencia_professor_prefere_marca_aulas_fora_dos_preferidos():
+    preferidos = {
+        f"manha-d{d}-h{h}": Disponibilidade.PREFERE for d in range(5) for h in range(4)
+    }
+    del preferidos["manha-d3-h3"]  # his na quinta, 4º horário: fora dos preferidos
+    inst = instancia_minima(
+        regras=[RegraConfig(id="r-pref-p", tipo="preferencia_professor", hard=False)],
+        disponibilidade={"prof-his": preferidos},
+    )
+
+    [custo] = avaliar(inst, grade_fixa(GRADE)).custos
+
+    [ocorrencia] = custo.ocorrencias
+    assert ocorrencia.celulas == [
+        Celula(slot_id="manha-d3-h3", professor_id="prof-his")
+    ]
+    assert ocorrencia.descricao == (
+        "prof-his: aula fora dos horários preferidos (quinta, 4º horário)"
+    )
+
+
+def test_preferencia_disciplina_prefere_marca_aulas_fora_das_ordens():
+    inst = instancia_minima(
+        regras=[
+            RegraConfig(
+                id="r-pref-d",
+                tipo="preferencia_disciplina",
+                hard=False,
+                parametros={"disciplina_id": "his", "ordens": [2], "modo": "prefere"},
+            )
+        ],
+    )
+
+    [custo] = avaliar(inst, grade_fixa(GRADE)).custos
+
+    assert [o.celulas for o in custo.ocorrencias] == [
+        [Celula(slot_id="manha-d3-h3", turma_id="t1")],
+        [Celula(slot_id="manha-d4-h3", turma_id="t1")],
+    ]
+    assert custo.ocorrencias[0].descricao == (
+        "Turma 1 – His: aula fora dos horários preferidos (quinta, 4º horário)"
+    )

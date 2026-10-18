@@ -1,10 +1,25 @@
+from __future__ import annotations
+
 from collections import defaultdict
 from dataclasses import dataclass
+from typing import TYPE_CHECKING, NamedTuple
 
 from ortools.sat.python import cp_model
 
 from .instancia import Atribuicao, Instancia, Slot
-from .ocorrencias import Localizador
+
+if TYPE_CHECKING:
+    from .ocorrencias import Localizador
+
+
+class TermoCusto(NamedTuple):
+    """Termo `peso × var` do objetivo, registrado por uma regra soft."""
+
+    var: cp_model.LinearExprT
+    peso: int
+    descricao: str
+    tipo: str
+    localizar: Localizador | None
 
 
 @dataclass
@@ -32,8 +47,7 @@ class ContextoModelo:
         self._slots_turma: dict[str, list[Slot]] = {
             t.id: instancia.slots_do_turno(t.turno_id) for t in instancia.turmas
         }
-        # regra_id -> [(var, peso, descricao, tipo, localizar)]
-        self.custos: dict[str, list] = defaultdict(list)
+        self.custos: dict[str, list[TermoCusto]] = defaultdict(list)
         self.assumptions: dict[str, cp_model.IntVar] = {}
 
         # índices para occ_* não varrerem todas as aulas a cada chamada
@@ -81,7 +95,7 @@ class ContextoModelo:
         self,
         regra_id: str,
         tipo: str,
-        var,
+        var: cp_model.LinearExprT,
         peso: int,
         descricao: str,
         localizar: Localizador | None = None,
@@ -91,7 +105,7 @@ class ContextoModelo:
         `localizar` diz onde a ocorrência aparece na grade pronta (ver
         `ocorrencias`); sem ele a ocorrência só é listada, sem células.
         """
-        self.custos[regra_id].append((var, peso, descricao, tipo, localizar))
+        self.custos[regra_id].append(TermoCusto(var, peso, descricao, tipo, localizar))
 
     def assumption(self, motivo: str) -> cp_model.IntVar:
         if motivo not in self.assumptions:
