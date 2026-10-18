@@ -1,12 +1,34 @@
+/** Célula marcada por uma ocorrência: na grade da turma OU do professor. */
+export type CelulaOcorrencia = {
+  slot_id: string;
+  turma_id?: string | null;
+  professor_id?: string | null;
+};
+
+/** Termo de custo soft violado (`pytime_engine.Ocorrencia`). */
+export type Ocorrencia = {
+  descricao: string;
+  unidades: number;
+  custo: number;
+  celulas: CelulaOcorrencia[];
+};
+
+/**
+ * Custo de uma regra preferencial. `ocorrencias` falta em avaliações
+ * gravadas antes de o motor apontar onde cada custo aparece.
+ */
+export type CustoRegra = {
+  regra_id: string;
+  tipo: string;
+  custo: number;
+  detalhes: string[];
+  ocorrencias?: Ocorrencia[];
+};
+
 /** Espelho TS de `pytime_engine.Avaliacao` (resposta do validador). */
 export type Avaliacao = {
   violacoes_hard: string[];
-  custos: {
-    regra_id: string;
-    tipo: string;
-    custo: number;
-    detalhes: string[];
-  }[];
+  custos: CustoRegra[];
   custo_total: number;
   tempo_segundos: number;
 };

@@ -39,6 +39,32 @@ describe("avaliarNoValidador", () => {
     expect(JSON.parse(init.body)).toEqual({ instancia, grade: aulas });
   });
 
+  it("repassa as ocorrências com as células de cada custo", async () => {
+    const comOcorrencias = {
+      ...avaliacao,
+      custos: [
+        {
+          regra_id: "r1",
+          tipo: "janelas_professor",
+          custo: 3,
+          detalhes: ["Ana: janelas na segunda"],
+          ocorrencias: [
+            {
+              descricao: "Ana: janelas na segunda",
+              unidades: 1,
+              custo: 3,
+              celulas: [{ slot_id: "s2", turma_id: null, professor_id: "p1" }],
+            },
+          ],
+        },
+      ],
+      custo_total: 3,
+    };
+    const fetch = vi.fn().mockResolvedValue(resposta(200, comOcorrencias));
+    const r = await avaliarNoValidador(instancia, aulas, { fetch });
+    expect(r).toEqual({ ok: true, avaliacao: comOcorrencias });
+  });
+
   it.each([
     [401, /mal configurad/],
     [422, /dados inválidos/],

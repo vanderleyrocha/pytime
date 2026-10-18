@@ -9,66 +9,24 @@ import {
 } from "@/lib/instancia";
 import { impressaoInstancia } from "@/lib/edicao/snapshot";
 import { custoExibido, type Avaliacao } from "@/lib/edicao/avaliacao";
+import {
+  gravarAvaliacaoRecalculada,
+  reavaliarSeDesatualizada,
+} from "@/lib/edicao/reavaliacao";
+import {
+  legendaRegras,
+  marcasDaGrade,
+  type DonoGrade,
+} from "@/lib/pontos-atencao";
 import type { Excecao } from "@/lib/edicao/acoes";
 import { traduzirNucleo } from "@/lib/nucleo";
 import { CATALOGO_REGRAS, type TipoRegra } from "@/lib/validacao/regras";
 import { Cabecalho } from "./cabecalho";
 import { Editor } from "./editor";
-
-const DIAS = ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"];
+import { GradeMarcada, type GradeExibida } from "./grade-marcada";
 
 type Celula = { disciplina: string; extra: string };
 type Slot = { id: string; dia: number; ordem: number; turno_id: string };
-
-function TabelaGrade({
-  slots,
-  celulas,
-}: {
-  slots: Slot[];
-  celulas: Map<string, Celula>;
-}) {
-  const dias = [...new Set(slots.map((s) => s.dia))].sort((a, b) => a - b);
-  const ordens = [...new Set(slots.map((s) => s.ordem))].sort((a, b) => a - b);
-  return (
-    <table className="border text-sm">
-      <thead>
-        <tr>
-          <th className="border px-2 py-1"></th>
-          {dias.map((d) => (
-            <th key={d} className="border px-2 py-1">
-              {DIAS[d]}
-            </th>
-          ))}
-        </tr>
-      </thead>
-      <tbody>
-        {ordens.map((o) => (
-          <tr key={o}>
-            <td className="border px-2 py-1 font-medium">{o + 1}º</td>
-            {dias.map((d) => {
-              const slot = slots.find((s) => s.dia === d && s.ordem === o);
-              const cel = slot ? celulas.get(slot.id) : undefined;
-              return (
-                <td key={d} className="border px-3 py-2 text-center">
-                  {cel ? (
-                    <>
-                      <div className="font-medium">{cel.disciplina}</div>
-                      <div className="text-xs text-muted-foreground">
-                        {cel.extra}
-                      </div>
-                    </>
-                  ) : (
-                    <span className="text-muted-foreground">—</span>
-                  )}
-                </td>
-              );
-            })}
-          </tr>
-        ))}
-      </tbody>
-    </table>
-  );
-}
 
 export default async function PaginaGrade({
   params,
@@ -151,9 +109,23 @@ export default async function PaginaGrade({
     : { data: null };
   const instancia =
     (gerR.data?.instancia as InstanciaMotor | undefined) ?? null;
-  const avaliacao = (cenario.avaliacao as Avaliacao | null) ?? null;
-  const excecoes = (cenario.excecoes as Excecao[] | null) ?? [];
   const podeEditar = perfil.papel !== "professor";
+  // Avaliações antigas não dizem onde estão os custos: recalcula no
+  // validador e, para gestor, grava (professor só vê o recálculo).
+  const avaliacao = erroLeitura
+    ? ((cenario.avaliacao as Avaliacao | null) ?? null)
+    : await reavaliarSeDesatualizada(
+        (cenario.avaliacao as Avaliacao | null) ?? null,
+        instancia,
+        aulasR.data ?? [],
+        {
+          gravar: podeEditar
+            ? (nova) =>
+                gravarAvaliacaoRecalculada(cenarioId, cenario.versao, nova)
+            : undefined,
+        },
+      );
+  const excecoes = (cenario.excecoes as Excecao[] | null) ?? [];
   // A grade é avaliada contra o snapshot da geração: avisa quando os
   // cadastros mudaram depois dela (inclusive por reimportação do escolajba).
   let cadastrosMudaram = false;
@@ -201,16 +173,17 @@ export default async function PaginaGrade({
     });
   }
 
-  const resultado = gerR.data?.resultado as {
-    custo_total?: number;
-    custos?: { regra_id: string; tipo: string; custo: number }[];
-  } | null;
+  const resultado = gerR.data?.resultado as Pick<
+    Avaliacao,
+    "custo_total" | "custos"
+  > | null;
   const custo = custoExibido(avaliacao, resultado);
-  const custosPorRegra = (avaliacao?.custos ?? resultado?.custos ?? []).filter(
-    (c) => c.custo > 0,
-  );
   const rotuloRegra = (tipo: string) =>
     CATALOGO_REGRAS[tipo as TipoRegra]?.rotulo ?? tipo;
+  const legenda = legendaRegras(
+    avaliacao?.custos ?? resultado?.custos ?? [],
+    rotuloRegra,
+  );
 
   const slotsDoTurno = (turnoId: string) =>
     slots.filter((s) => s.turno_id === turnoId);
@@ -228,6 +201,42 @@ export default async function PaginaGrade({
         : (turnosR.data ?? []);
   const alvoAtivo = alvo ?? alvos[0]?.id;
   const turmaAtiva = (turmasR.data ?? []).find((t) => t.id === alvoAtivo);
+
+  const celulasDe = (m: Map<string, Celula> | undefined) =>
+    Object.fromEntries(m ?? []);
+  const grades: GradeExibida[] = [];
+  if (visao === "turma" && turmaAtiva) {
+    grades.push({
+      chave: turmaAtiva.id,
+      dono: { eixo: "turma", id: turmaAtiva.id },
+      slots: slotsDoTurno(turmaAtiva.turno_id),
+      celulas: celulasDe(porTurma.get(turmaAtiva.id)),
+    });
+  } else if (visao === "professor" && alvoAtivo) {
+    for (const tn of turnosR.data ?? []) {
+      grades.push({
+        chave: tn.id,
+        titulo: tn.nome,
+        dono: { eixo: "professor", id: alvoAtivo },
+        slots: slotsDoTurno(tn.id),
+        celulas: celulasDe(porProfessor.get(alvoAtivo)),
+      });
+    }
+  } else if (visao === "turno" && alvoAtivo) {
+    for (const t of (turmasR.data ?? []).filter(
+      (t) => t.turno_id === alvoAtivo,
+    )) {
+      grades.push({
+        chave: t.id,
+        titulo: t.nome,
+        dono: { eixo: "turma", id: t.id },
+        slots: slotsDoTurno(alvoAtivo),
+        celulas: celulasDe(porTurma.get(t.id)),
+      });
+    }
+  }
+  const donos: DonoGrade[] = grades.map((g) => g.dono);
+  const marcas = marcasDaGrade(legenda, donos);
 
   return (
     <div className="flex flex-col gap-6">
@@ -370,49 +379,48 @@ export default async function PaginaGrade({
             ))}
           </nav>
 
-          {visao === "turma" && turmaAtiva && (
-            <TabelaGrade
-              slots={slotsDoTurno(turmaAtiva.turno_id)}
-              celulas={porTurma.get(turmaAtiva.id) ?? new Map()}
-            />
-          )}
-          {visao === "professor" && alvoAtivo && (
-            <div className="flex flex-col gap-4">
-              {(turnosR.data ?? []).map((tn) => (
-                <div key={tn.id}>
-                  <h2 className="mb-1 font-semibold">{tn.nome}</h2>
-                  <TabelaGrade
-                    slots={slotsDoTurno(tn.id)}
-                    celulas={porProfessor.get(alvoAtivo) ?? new Map()}
-                  />
-                </div>
-              ))}
-            </div>
-          )}
-          {visao === "turno" && alvoAtivo && (
-            <div className="flex flex-col gap-4">
-              {(turmasR.data ?? [])
-                .filter((t) => t.turno_id === alvoAtivo)
-                .map((t) => (
-                  <div key={t.id}>
-                    <h2 className="mb-1 font-semibold">{t.nome}</h2>
-                    <TabelaGrade
-                      slots={slotsDoTurno(alvoAtivo)}
-                      celulas={porTurma.get(t.id) ?? new Map()}
-                    />
-                  </div>
-                ))}
-            </div>
-          )}
+          <GradeMarcada
+            grades={grades}
+            legenda={legenda.map((r) => ({ ...r, ocorrencias: undefined }))}
+            porCelula={marcas.porCelula}
+            visiveis={marcas.visiveis}
+          />
         </>
       )}
-      {custosPorRegra.length > 0 && (
+      {legenda.length > 0 && (
         <section className="text-sm">
           <h2 className="font-semibold">Custo por regra preferencial</h2>
-          <ul className="list-inside list-disc">
-            {custosPorRegra.map((c) => (
-              <li key={c.regra_id}>
-                {rotuloRegra(c.tipo)}: {c.custo}
+          <ul className="flex flex-col gap-1">
+            {legenda.map((r) => (
+              <li key={r.regra_id}>
+                <details>
+                  <summary className="cursor-pointer">
+                    <span
+                      aria-hidden
+                      className="mr-2 inline-block size-3 rounded-full align-middle"
+                      style={{ backgroundColor: r.cor }}
+                    />
+                    {r.rotulo}: {r.resumo}
+                  </summary>
+                  {r.ocorrencias.length > 0 ? (
+                    <ul className="ml-7 list-disc">
+                      {r.ocorrencias.map((o, i) => (
+                        <li key={i}>
+                          {o.descricao}
+                          {o.unidades > 1 && <> (×{o.unidades})</>}{" "}
+                          <span className="text-muted-foreground">
+                            custo {o.custo}
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="ml-7 text-muted-foreground">
+                      Detalhes indisponíveis: a validação não respondeu.
+                      Recarregue a página para tentar de novo.
+                    </p>
+                  )}
+                </details>
               </li>
             ))}
           </ul>
