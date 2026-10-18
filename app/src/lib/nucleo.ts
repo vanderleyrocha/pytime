@@ -81,11 +81,57 @@ function traduzirMotivo(
       return `Regra "${CATALOGO_REGRAS.ultimo_horario.rotulo}" (${d}): não é possível evitar o último horário do dia.`;
     }
     case "estrutural": {
+      const detalhe = traduzirEstrutural(resto, instancia, nomes);
+      if (detalhe) return detalhe;
       const texto = id.trim();
       return texto.charAt(0).toUpperCase() + texto.slice(1);
     }
+    case "instancia":
+      return substituirIds(id, nomes.todos);
     default:
       return substituirIds(motivo, nomes.todos);
+  }
+}
+
+const DIAS = ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"];
+
+function descreverSlot(id: string, instancia: InstanciaMotor): string {
+  const s = instancia.slots.find((x) => x.id === id);
+  return s
+    ? `${DIAS[s.dia] ?? `dia ${s.dia}`} ${s.ordem + 1}º horário`
+    : "horário removido";
+}
+
+/**
+ * Motivos estruturais do avaliador (`estrutural:<tipo>:<id>[:<slot>]`,
+ * `pytime_engine.avaliador`). Devolve null para o formato antigo do solver
+ * (`estrutural: <frase>`), tratado por quem chama.
+ */
+function traduzirEstrutural(
+  partes: string[],
+  instancia: InstanciaMotor,
+  nomes: Nomes,
+): string | null {
+  const [tipo, id, slot] = partes;
+  const quando = slot ? descreverSlot(slot, instancia) : "";
+  const turma = () => nomes.turmas.get(id) ?? "turma removida";
+  switch (tipo) {
+    case "professor_duplo": {
+      const prof = nomes.professores.get(id) ?? "um professor removido";
+      return `${prof} tem duas aulas ao mesmo tempo (${quando}).`;
+    }
+    case "turma_duplo":
+      return `${turma()} tem duas aulas no mesmo horário (${quando}).`;
+    case "turma_vazio":
+      return `${turma()} ficou sem aula em ${quando}.`;
+    case "fora_do_turno":
+      return `${descreverAtribuicao(id, instancia, nomes)}: aula em ${quando}, fora do turno da turma.`;
+    case "carga":
+      return `${descreverAtribuicao(id, instancia, nomes)}: número de aulas diferente da carga semanal.`;
+    case "atribuicao_desconhecida":
+      return `Aula de uma atribuição que não existe mais (${id}).`;
+    default:
+      return null;
   }
 }
 
@@ -116,4 +162,26 @@ export function traduzirNucleo(
   if (!instancia) return motivos;
   const nomes = indexar(instancia);
   return motivos.map((m) => traduzirMotivo(m, instancia, nomes));
+}
+
+export type MotivoTraduzido = { texto: string; slotIds: string[] };
+
+/**
+ * Como `traduzirNucleo`, para as violações de uma grade editada: devolve
+ * também os horários a destacar (o slot dos motivos estruturais).
+ */
+export function traduzirViolacoes(
+  motivos: string[],
+  instancia: InstanciaMotor,
+): MotivoTraduzido[] {
+  const nomes = indexar(instancia);
+  return motivos.map((m) => {
+    const partes = m.split(":");
+    const slot =
+      partes[0] === "estrutural" && partes.length >= 4 ? partes[3] : null;
+    return {
+      texto: traduzirMotivo(m, instancia, nomes),
+      slotIds: slot ? [slot] : [],
+    };
+  });
 }
