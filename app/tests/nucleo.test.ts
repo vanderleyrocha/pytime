@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { traduzirNucleo } from "@/lib/nucleo";
+import { traduzirNucleo, traduzirViolacoes } from "@/lib/nucleo";
 import type { InstanciaMotor } from "@/lib/instancia";
 
 const instancia: InstanciaMotor = {
@@ -103,5 +103,67 @@ describe("traduzirNucleo", () => {
 
   it("sem instância devolve os motivos originais", () => {
     expect(traduzirNucleo(["recurso:r1"], null)).toEqual(["recurso:r1"]);
+  });
+});
+
+describe("traduzirViolacoes (edição manual)", () => {
+  it("professor em dois lugares: frase com nome, horário e slot a destacar", () => {
+    const [v] = traduzirViolacoes(
+      ["estrutural:professor_duplo:p1:s1"],
+      instancia,
+    );
+    expect(v.texto).toContain("Ana Souza");
+    expect(v.texto).toContain("Seg 1º horário");
+    expect(v.texto).not.toContain("p1");
+    expect(v.slotIds).toEqual(["s1"]);
+  });
+
+  it("turma com horário vazio ou duplo indica a turma e o horário", () => {
+    const [vazio, duplo] = traduzirViolacoes(
+      ["estrutural:turma_vazio:t1:s1", "estrutural:turma_duplo:t1:s1"],
+      instancia,
+    );
+    expect(vazio.texto).toMatch(/6º A.*sem aula|sem aula.*6º A/);
+    expect(duplo.texto).toMatch(/6º A/);
+    expect(duplo.texto).toMatch(/duas aulas/);
+    expect(vazio.slotIds).toEqual(["s1"]);
+  });
+
+  it("aula fora do turno e carga diferente descrevem a atribuição", () => {
+    const [fora, carga] = traduzirViolacoes(
+      ["estrutural:fora_do_turno:a1:s1", "estrutural:carga:a1"],
+      instancia,
+    );
+    expect(fora.texto).toContain("Matemática em 6º A (Ana Souza)");
+    expect(fora.slotIds).toEqual(["s1"]);
+    expect(carga.texto).toContain("Matemática em 6º A (Ana Souza)");
+    expect(carga.slotIds).toEqual([]);
+  });
+
+  it("erro da própria instância perde o prefixo técnico", () => {
+    const [v] = traduzirViolacoes(
+      [
+        "instancia:Turma 6º A: carga total 3 difere do número de slots do turno (2).",
+      ],
+      instancia,
+    );
+    expect(v.texto).toBe(
+      "Turma 6º A: carga total 3 difere do número de slots do turno (2).",
+    );
+  });
+
+  it("motivos de regra seguem a tradução do núcleo, sem slot", () => {
+    const [v] = traduzirViolacoes(["disponibilidade:p1"], instancia);
+    expect(v.texto).toContain("Ana Souza");
+    expect(v.slotIds).toEqual([]);
+  });
+
+  it("estrutural em frase (vindo do solver) continua funcionando", () => {
+    expect(
+      traduzirViolacoes(
+        ["estrutural: conflito nas restrições básicas (professor/turma/carga)"],
+        instancia,
+      )[0].texto,
+    ).toBe("Conflito nas restrições básicas (professor/turma/carga)");
   });
 });
