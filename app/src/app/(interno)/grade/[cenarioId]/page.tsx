@@ -13,6 +13,7 @@ import type { Excecao } from "@/lib/edicao/acoes";
 import { traduzirNucleo } from "@/lib/nucleo";
 import { CATALOGO_REGRAS, type TipoRegra } from "@/lib/validacao/regras";
 import { Cabecalho } from "./cabecalho";
+import { Editor } from "./editor";
 
 const DIAS = ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"];
 
@@ -74,10 +75,10 @@ export default async function PaginaGrade({
   searchParams,
 }: {
   params: Promise<{ cenarioId: string }>;
-  searchParams: Promise<{ visao?: string; alvo?: string }>;
+  searchParams: Promise<{ visao?: string; alvo?: string; editar?: string }>;
 }) {
   const { cenarioId } = await params;
-  const { visao = "turma", alvo } = await searchParams;
+  const { visao = "turma", alvo, editar } = await searchParams;
   const perfil = (await obterUnidadeAtiva())!;
   const supabase = await criarClienteServidor();
 
@@ -311,64 +312,100 @@ export default async function PaginaGrade({
           </ul>
         </section>
       )}
-      <nav className="flex gap-4 text-sm">
-        {abas.map((a) => (
-          <Link
-            key={a.chave}
-            href={`/grade/${cenarioId}?visao=${a.chave}`}
-            className={a.chave === visao ? "font-bold underline" : "underline"}
-          >
-            {a.rotulo}
-          </Link>
-        ))}
-      </nav>
-      <nav className="flex flex-wrap gap-3 text-sm">
-        {alvos.map((x) => (
-          <Link
-            key={x.id}
-            href={`/grade/${cenarioId}?visao=${visao}&alvo=${x.id}`}
-            className={x.id === alvoAtivo ? "font-bold underline" : "underline"}
-          >
-            {x.nome}
-          </Link>
-        ))}
-      </nav>
-
-      {visao === "turma" && turmaAtiva && (
-        <TabelaGrade
-          slots={slotsDoTurno(turmaAtiva.turno_id)}
-          celulas={porTurma.get(turmaAtiva.id) ?? new Map()}
+      {editar === "1" && podeEditar ? (
+        <Editor
+          cenarioId={cenarioId}
+          versao={cenario.versao}
+          oficial={cenario.oficial}
+          aulas={aulasR.data ?? []}
+          avaliacaoBase={avaliacao}
+          turmas={turmasR.data ?? []}
+          slots={slots}
+          turmaInicial={turmaAtiva?.id ?? turmasR.data?.[0]?.id ?? ""}
+          turmaDaAtribuicao={Object.fromEntries(
+            (atribR.data ?? []).map((a) => [a.id, a.turma_id]),
+          )}
+          rotulos={Object.fromEntries(
+            (atribR.data ?? []).map((a) => [
+              a.id,
+              {
+                disciplina: nomeDisc[a.disciplina_id] ?? "?",
+                professor: nomeProf[a.professor_id] ?? "?",
+              },
+            ]),
+          )}
+          rotulosRegra={Object.fromEntries(
+            Object.entries(CATALOGO_REGRAS).map(([tipo, c]) => [
+              tipo,
+              c.rotulo,
+            ]),
+          )}
         />
-      )}
-      {visao === "professor" && alvoAtivo && (
-        <div className="flex flex-col gap-4">
-          {(turnosR.data ?? []).map((tn) => (
-            <div key={tn.id}>
-              <h2 className="mb-1 font-semibold">{tn.nome}</h2>
-              <TabelaGrade
-                slots={slotsDoTurno(tn.id)}
-                celulas={porProfessor.get(alvoAtivo) ?? new Map()}
-              />
-            </div>
-          ))}
-        </div>
-      )}
-      {visao === "turno" && alvoAtivo && (
-        <div className="flex flex-col gap-4">
-          {(turmasR.data ?? [])
-            .filter((t) => t.turno_id === alvoAtivo)
-            .map((t) => (
-              <div key={t.id}>
-                <h2 className="mb-1 font-semibold">{t.nome}</h2>
-                <TabelaGrade
-                  slots={slotsDoTurno(alvoAtivo)}
-                  celulas={porTurma.get(t.id) ?? new Map()}
-                />
-              </div>
+      ) : (
+        <>
+          <nav className="flex gap-4 text-sm">
+            {abas.map((a) => (
+              <Link
+                key={a.chave}
+                href={`/grade/${cenarioId}?visao=${a.chave}`}
+                className={
+                  a.chave === visao ? "font-bold underline" : "underline"
+                }
+              >
+                {a.rotulo}
+              </Link>
             ))}
-        </div>
-      )}
+          </nav>
+          <nav className="flex flex-wrap gap-3 text-sm">
+            {alvos.map((x) => (
+              <Link
+                key={x.id}
+                href={`/grade/${cenarioId}?visao=${visao}&alvo=${x.id}`}
+                className={
+                  x.id === alvoAtivo ? "font-bold underline" : "underline"
+                }
+              >
+                {x.nome}
+              </Link>
+            ))}
+          </nav>
 
+          {visao === "turma" && turmaAtiva && (
+            <TabelaGrade
+              slots={slotsDoTurno(turmaAtiva.turno_id)}
+              celulas={porTurma.get(turmaAtiva.id) ?? new Map()}
+            />
+          )}
+          {visao === "professor" && alvoAtivo && (
+            <div className="flex flex-col gap-4">
+              {(turnosR.data ?? []).map((tn) => (
+                <div key={tn.id}>
+                  <h2 className="mb-1 font-semibold">{tn.nome}</h2>
+                  <TabelaGrade
+                    slots={slotsDoTurno(tn.id)}
+                    celulas={porProfessor.get(alvoAtivo) ?? new Map()}
+                  />
+                </div>
+              ))}
+            </div>
+          )}
+          {visao === "turno" && alvoAtivo && (
+            <div className="flex flex-col gap-4">
+              {(turmasR.data ?? [])
+                .filter((t) => t.turno_id === alvoAtivo)
+                .map((t) => (
+                  <div key={t.id}>
+                    <h2 className="mb-1 font-semibold">{t.nome}</h2>
+                    <TabelaGrade
+                      slots={slotsDoTurno(alvoAtivo)}
+                      celulas={porTurma.get(t.id) ?? new Map()}
+                    />
+                  </div>
+                ))}
+            </div>
+          )}
+        </>
+      )}
       {custosPorRegra.length > 0 && (
         <section className="text-sm">
           <h2 className="font-semibold">Custo por regra preferencial</h2>
