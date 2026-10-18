@@ -297,3 +297,57 @@ def test_erro_da_instancia_vem_prefixado():
     av = avaliar(inst, GRADE_COM_JANELAS)
     assert av.violacoes_hard
     assert all(v.startswith("instancia:") for v in av.violacoes_hard)
+
+
+def test_avaliador_preparado_reaproveita_o_modelo_sem_vazar_estado():
+    from pytime_engine import AvaliadorPreparado
+
+    inst = instancia_minima(
+        regras=[
+            RegraConfig(id="r-disp", tipo="disponibilidade_professor", hard=True),
+            RegraConfig(id="r-jan", tipo="janelas_professor", hard=False),
+        ],
+        disponibilidade={"prof-mat": {"manha-d0-h0": Disponibilidade.INDISPONIVEL}},
+    )
+    preparado = AvaliadorPreparado(inst)
+    violada = _grade_por_dia(
+        [["mat", "por", "mat", "por"]]
+        + [["mat", "mat", "por", "por"]] * 3
+        + [["his"] * 4]
+    )
+    valida = _grade_por_dia(
+        [["por", "mat", "mat", "por"]]
+        + [["mat", "mat", "por", "por"]] * 3
+        + [["his"] * 4]
+    )
+
+    # alterna as grades: cada veredito tem de bater com o avaliar isolado
+    for grade in [violada, valida, violada, valida]:
+        av = preparado.avaliar(grade)
+        isolada = avaliar(inst, grade)
+        assert av.violacoes_hard == isolada.violacoes_hard
+        assert av.custo_total == isolada.custo_total
+
+    assert preparado.avaliar(violada).violacoes_hard == ["disponibilidade:prof-mat"]
+    assert preparado.avaliar(valida).violacoes_hard == []
+
+
+def test_avaliador_preparado_com_grade_estrutural_invalida():
+    from pytime_engine import AvaliadorPreparado
+
+    inst = instancia_minima()
+    preparado = AvaliadorPreparado(inst)
+    av = preparado.avaliar(GRADE_COM_JANELAS[1:])
+    assert "estrutural:turma_vazio:t1:manha-d0-h0" in av.violacoes_hard
+    # e o preparado continua utilizável depois
+    assert preparado.avaliar(GRADE_COM_JANELAS).violacoes_hard == []
+
+
+def test_avaliador_preparado_de_instancia_invalida_so_devolve_os_erros():
+    from pytime_engine import AvaliadorPreparado
+
+    inst = instancia_minima()
+    inst.atribuicoes[0].carga_semanal = 7
+    av = AvaliadorPreparado(inst).avaliar(GRADE_COM_JANELAS)
+    assert av.violacoes_hard
+    assert all(v.startswith("instancia:") for v in av.violacoes_hard)
