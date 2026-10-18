@@ -17,7 +17,8 @@ próxima.
 - **App** (`app/`): Next.js App Router + shadcn/ui na Vercel; Supabase
   (Postgres/RLS/Auth/Realtime).
 - **Worker** (`worker/`): pacote Python separado no Fly.io; consome a fila
-  `geracoes` e roda o motor. Pode importar `pytime_engine` e `psycopg`.
+  `geracoes` e roda o motor; o processo `validador` (mesmo pacote) serve
+  `POST /avaliar` da edição manual. Pode importar `pytime_engine` e `psycopg`.
   Deploy e envs em `docs/deploy.md`.
 - Identificadores, mensagens, docstrings e commits **em português**.
 
@@ -106,6 +107,7 @@ python supabase/tests/rodar_testes.py
 #      fly machine stop <id> --app pytime-worker
 cd worker && pytest -q && ruff check . && ruff format --check .
 python -m pytime_worker.principal                                 # roda o worker localmente
+VALIDADOR_TOKEN=dev python -m pytime_worker.validador             # validador local (:8080)
 
 cd engine
 pytest                              # suíte completa (47+ testes)

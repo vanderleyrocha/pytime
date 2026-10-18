@@ -2,7 +2,7 @@
 name = "pytime-worker"
 version = "0.1.0"
 requires-python = ">=3.12"
-dependencies = ["pytime-engine", "psycopg[binary]>=3.1"]
+dependencies = ["pytime-engine", "psycopg[binary]>=3.1", "pydantic>=2.7"]
 
 [project.optional-dependencies]
 dev = ["pytest>=8", "ruff>=0.6"]
