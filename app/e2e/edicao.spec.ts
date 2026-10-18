@@ -34,7 +34,9 @@ test("edição manual: troca, veredito, salvar, duplicar e oficial", async ({
   await page.waitForURL(/editar=1/);
   // cliques antes da hidratação se perderiam
   await page.waitForLoadState("networkidle");
-  const veredito = page.locator("aside");
+  const veredito = page.getByRole("complementary", {
+    name: "Veredito do motor",
+  });
   await expect(veredito).toContainText("Nenhuma troca ainda.");
 
   // Português no 1º horário de segunda: a professora está indisponível
