@@ -46,11 +46,24 @@ export const esquemaGrade = z
     { message: "Horários não podem se sobrepor" },
   );
 
-export const esquemaAtribuicao = z.object({
-  professor_id: z.uuid("Escolha o professor"),
-  disciplina_id: z.uuid("Escolha a disciplina"),
-  turma_id: z.uuid("Escolha a turma"),
-  carga_semanal: z.coerce.number().int().min(1, "Carga semanal mínima é 1"),
-  geminadas: z.coerce.number().int().min(0, "Geminadas não pode ser negativo"),
-  recurso_ids: z.array(z.uuid()).default([]),
-});
+export const esquemaAtribuicao = z
+  .object({
+    professor_id: z.uuid("Escolha o professor"),
+    disciplina_id: z.uuid("Escolha a disciplina"),
+    turma_id: z.uuid("Escolha a turma"),
+    carga_semanal: z.coerce.number().int().min(1, "Carga semanal mínima é 1"),
+    geminadas: z.coerce
+      .number()
+      .int()
+      .min(0, "Geminadas não pode ser negativo"),
+    recurso_ids: z.array(z.uuid()).default([]),
+  })
+  // Mesma checagem da importação (`carga/validacao.ts`): cada par usa 2 aulas.
+  .refine((a) => 2 * a.geminadas <= a.carga_semanal, {
+    path: ["geminadas"],
+    error: (issue) => {
+      const a = issue.input as { carga_semanal: number };
+      const maximo = Math.floor(a.carga_semanal / 2);
+      return `Com ${a.carga_semanal} aula(s) semanais cabem no máximo ${maximo} ${maximo === 1 ? "par" : "pares"} geminado(s).`;
+    },
+  });

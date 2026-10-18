@@ -98,4 +98,17 @@ describe("schemas de cadastro", () => {
       esquemaAtribuicao.safeParse({ ...base, geminadas: -1 }).success,
     ).toBe(false);
   });
+  it("atribuição rejeita pares geminados que não cabem na carga", () => {
+    const base = {
+      professor_id: UUID,
+      disciplina_id: UUID,
+      turma_id: UUID,
+      carga_semanal: "2",
+      geminadas: "1",
+    };
+    expect(esquemaAtribuicao.safeParse(base).success).toBe(true);
+    const r = esquemaAtribuicao.safeParse({ ...base, geminadas: "2" });
+    expect(r.success).toBe(false);
+    expect(r.error?.issues[0].message).toContain("no máximo 1 par");
+  });
 });
