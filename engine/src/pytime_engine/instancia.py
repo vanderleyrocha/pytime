@@ -1,6 +1,6 @@
 from enum import StrEnum
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 
 class Disponibilidade(StrEnum):
@@ -26,11 +26,34 @@ class Turma(BaseModel):
     id: str
     nome: str
     turno_id: str
+    # slot_id -> status; slot ausente = disponivel. Slot indisponível não
+    # existe para a turma: ela não tem aula nesse horário.
+    disponibilidade: dict[str, Disponibilidade] = Field(default_factory=dict)
+
+    @field_validator("disponibilidade")
+    @classmethod
+    def _so_disponivel_ou_indisponivel(
+        cls, valor: dict[str, Disponibilidade]
+    ) -> dict[str, Disponibilidade]:
+        invalidos = sorted(
+            s
+            for s, st in valor.items()
+            if st not in (Disponibilidade.DISPONIVEL, Disponibilidade.INDISPONIVEL)
+        )
+        if invalidos:
+            raise ValueError(
+                "Turma só aceita 'disponivel' ou 'indisponivel' na disponibilidade"
+                f" (slots: {', '.join(invalidos)})."
+            )
+        return valor
 
 
 class Disciplina(BaseModel):
     id: str
     nome: str
+    # slot_id -> status; slot ausente = disponivel (regras
+    # disponibilidade_disciplina e preferencia_disciplina_horario)
+    disponibilidade: dict[str, Disponibilidade] = Field(default_factory=dict)
 
 
 class Professor(BaseModel):
@@ -82,6 +105,14 @@ class Instancia(BaseModel):
             key=lambda s: (s.dia, s.ordem),
         )
 
+    def slots_da_turma(self, turma: Turma) -> list[Slot]:
+        """Slots do turno da turma, sem os que ela marcou como indisponíveis."""
+        return [
+            s
+            for s in self.slots_do_turno(turma.turno_id)
+            if turma.disponibilidade.get(s.id) != Disponibilidade.INDISPONIVEL
+        ]
+
     def validar_referencias(self) -> list[str]:
         """Detecta ids referenciados que não existem na instância."""
         erros = []
@@ -90,6 +121,7 @@ class Instancia(BaseModel):
         disciplinas_ids = {d.id for d in self.disciplinas}
         professores_ids = {p.id for p in self.professores}
         recursos_ids = {r.id for r in self.recursos}
+        turno_do_slot = {s.id: s.turno_id for s in self.slots}
 
         for turma in self.turmas:
             if turma.turno_id not in turnos_ids:
@@ -97,6 +129,24 @@ class Instancia(BaseModel):
                     f"Turma {turma.nome} ({turma.id}): turno_id "
                     f"'{turma.turno_id}' não encontrado."
                 )
+            for slot_id in sorted(turma.disponibilidade):
+                if slot_id not in turno_do_slot:
+                    erros.append(
+                        f"Turma {turma.nome}: slot '{slot_id}' da disponibilidade"
+                        " não encontrado."
+                    )
+                elif turno_do_slot[slot_id] != turma.turno_id:
+                    erros.append(
+                        f"Turma {turma.nome}: slot '{slot_id}' da disponibilidade"
+                        " não pertence ao turno da turma."
+                    )
+        for disciplina in self.disciplinas:
+            for slot_id in sorted(disciplina.disponibilidade):
+                if slot_id not in turno_do_slot:
+                    erros.append(
+                        f"Disciplina {disciplina.nome}: slot '{slot_id}' da"
+                        " disponibilidade não encontrado."
+                    )
         for slot in self.slots:
             if slot.turno_id not in turnos_ids:
                 erros.append(
@@ -127,16 +177,25 @@ class Instancia(BaseModel):
         return erros
 
     def validar_matriz_cheia(self) -> list[str]:
-        """Turma deve ter carga total igual ao nº de slots do seu turno."""
+        """Turma deve ter carga total igual ao nº de slots disponíveis dela."""
         erros = []
         for turma in self.turmas:
             carga = sum(
                 a.carga_semanal for a in self.atribuicoes if a.turma_id == turma.id
             )
-            n_slots = len(self.slots_do_turno(turma.turno_id))
-            if carga != n_slots:
+            n_turno = len(self.slots_do_turno(turma.turno_id))
+            n_slots = len(self.slots_da_turma(turma))
+            if carga == n_slots:
+                continue
+            if n_slots == n_turno:
                 erros.append(
                     f"Turma {turma.nome}: carga total {carga} difere do "
                     f"número de slots do turno ({n_slots})."
+                )
+            else:
+                erros.append(
+                    f"Turma {turma.nome}: carga total {carga} difere do número"
+                    f" de horários disponíveis da turma ({n_slots} de {n_turno}"
+                    " do turno)."
                 )
         return erros

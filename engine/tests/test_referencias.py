@@ -1,6 +1,7 @@
 from conftest import instancia_minima
 
 from pytime_engine import resolver
+from pytime_engine.instancia import Slot, Turno
 
 
 def test_professor_id_inexistente_e_inviavel():
@@ -54,3 +55,31 @@ def test_turno_id_inexistente_no_slot_e_inviavel():
 def test_instancia_valida_sem_erros_referenciais():
     inst = instancia_minima()
     assert inst.validar_referencias() == []
+
+
+def test_slot_inexistente_na_disponibilidade_da_turma_e_inviavel():
+    inst = instancia_minima()
+    inst.turmas[0].disponibilidade = {"slot-fantasma": "indisponivel"}
+    r = resolver(inst)
+    assert r.status == "inviavel"
+    assert any("slot-fantasma" in erro for erro in r.nucleo_conflito)
+
+
+def test_slot_de_outro_turno_na_disponibilidade_da_turma_e_inviavel():
+    inst = instancia_minima()
+    inst.turnos.append(Turno(id="tarde", nome="Tarde"))
+    inst.slots.append(Slot(id="tarde-d0-h0", dia=0, ordem=0, turno_id="tarde"))
+    inst.turmas[0].disponibilidade = {"tarde-d0-h0": "indisponivel"}
+    erros = inst.validar_referencias()
+    assert erros == [
+        "Turma Turma 1: slot 'tarde-d0-h0' da disponibilidade não pertence"
+        " ao turno da turma."
+    ]
+
+
+def test_slot_inexistente_na_disponibilidade_da_disciplina_e_inviavel():
+    inst = instancia_minima()
+    inst.disciplinas[0].disponibilidade = {"slot-fantasma": "indisponivel"}
+    r = resolver(inst)
+    assert r.status == "inviavel"
+    assert any("slot-fantasma" in erro for erro in r.nucleo_conflito)
