@@ -9,17 +9,19 @@ const UUID_A = "00000000-0000-4000-8000-00000000000a";
 const UUID_B = "00000000-0000-4000-8000-00000000000b";
 
 describe("catálogo de regras", () => {
-  it("tem exatamente os 12 tipos do motor", () => {
+  it("tem exatamente os 14 tipos do motor", () => {
     expect(Object.keys(CATALOGO_REGRAS).sort()).toEqual([
       "aulas_juntas",
       "compactacao_dias",
       "disciplina_sincronizada",
+      "disponibilidade_disciplina",
       "disponibilidade_professor",
       "distribuicao_disciplina",
       "geminadas",
       "janelas_professor",
       "nao_mesmo_dia",
       "preferencia_disciplina",
+      "preferencia_disciplina_horario",
       "preferencia_professor",
       "recurso_compartilhado",
       "ultimo_horario",
@@ -28,6 +30,10 @@ describe("catálogo de regras", () => {
   it("modos hard/soft espelham o motor", () => {
     expect(CATALOGO_REGRAS.disponibilidade_professor.modo).toBe("fixa_hard");
     expect(CATALOGO_REGRAS.janelas_professor.modo).toBe("fixa_soft");
+    expect(CATALOGO_REGRAS.disponibilidade_disciplina.modo).toBe("fixa_hard");
+    expect(CATALOGO_REGRAS.preferencia_disciplina_horario.modo).toBe(
+      "fixa_soft",
+    );
     expect(CATALOGO_REGRAS.ultimo_horario.modo).toBe("alternavel");
     expect(CATALOGO_REGRAS.nao_mesmo_dia.modo).toBe("alternavel");
     expect(CATALOGO_REGRAS.aulas_juntas.modo).toBe("alternavel");

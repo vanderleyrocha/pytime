@@ -2,7 +2,11 @@ import { notFound } from "next/navigation";
 import { criarClienteServidor } from "@/lib/supabase/cliente-servidor";
 import { obterUnidadeAtiva } from "@/lib/unidade-ativa";
 import type { StatusDisponibilidade } from "@/lib/disponibilidade";
-import { MatrizDisponibilidade, type SlotMatriz } from "./matriz";
+import {
+  MatrizDisponibilidade,
+  type SlotMatriz,
+} from "@/components/matriz-disponibilidade";
+import { salvarDisponibilidades } from "./actions";
 
 export default async function PaginaDisponibilidade({
   params,
@@ -60,9 +64,9 @@ export default async function PaginaDisponibilidade({
         </p>
       ) : (
         <MatrizDisponibilidade
-          professorId={professor.id}
           slots={slotsMatriz}
           iniciais={iniciais}
+          aoSalvar={salvarDisponibilidades.bind(null, professor.id)}
         />
       )}
     </div>

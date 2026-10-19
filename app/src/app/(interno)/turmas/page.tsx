@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { criarClienteServidor } from "@/lib/supabase/cliente-servidor";
 import { obterUnidadeAtiva } from "@/lib/unidade-ativa";
 import {
@@ -47,7 +48,7 @@ export default async function PaginaTurmas() {
           <tr className="border-b text-left">
             <th className="py-2">Nome</th>
             <th>Turno</th>
-            <th className="w-48"></th>
+            <th className="w-72"></th>
           </tr>
         </thead>
         <tbody>
@@ -58,6 +59,12 @@ export default async function PaginaTurmas() {
                 {(t.turnos as unknown as { nome: string } | null)?.nome ?? "—"}
               </td>
               <td className="flex gap-2 py-2">
+                <Link
+                  className="inline-flex h-8 items-center rounded-md border px-3 text-sm underline-offset-2 hover:underline"
+                  href={`/turmas/${t.id}/horarios`}
+                >
+                  Horários
+                </Link>
                 <FormularioCadastro
                   tabela="turmas"
                   campos={campos}

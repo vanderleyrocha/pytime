@@ -2,12 +2,16 @@
 
 import { useMemo, useState, useTransition } from "react";
 import {
+  CICLO_COMPLETO,
+  CICLO_TURMA,
   COR_STATUS,
+  COR_TURMA,
   ROTULO_STATUS,
+  ROTULO_TURMA,
   proximoStatus,
   type StatusDisponibilidade,
 } from "@/lib/disponibilidade";
-import { salvarDisponibilidades } from "./actions";
+import type { EstadoCadastro } from "@/lib/cadastros";
 import { Button } from "@/components/ui/button";
 
 const DIAS = ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"];
@@ -19,15 +23,57 @@ export type SlotMatriz = {
   turno_nome: string;
 };
 
+export type Marcacao = { slot_id: string; status: StatusDisponibilidade };
+
+/** "completa" (professor, disciplina): disponível/indisponível/prefere/evita.
+ *  "turma": tem aula/sem aula. */
+type Variante = "completa" | "turma";
+
+const VARIANTES: Record<
+  Variante,
+  {
+    ciclo: StatusDisponibilidade[];
+    rotulos: Record<StatusDisponibilidade, string>;
+    cores: Record<StatusDisponibilidade, string>;
+    ajuda: string;
+  }
+> = {
+  completa: {
+    ciclo: CICLO_COMPLETO,
+    rotulos: ROTULO_STATUS,
+    cores: COR_STATUS,
+    ajuda:
+      "Clique cicla Disponível → Indisponível → Prefere → Evita; arraste para pintar vários slots.",
+  },
+  turma: {
+    ciclo: CICLO_TURMA,
+    rotulos: ROTULO_TURMA,
+    cores: COR_TURMA,
+    ajuda:
+      "Clique alterna Tem aula ↔ Sem aula; arraste para pintar vários horários.",
+  },
+};
+
 export function MatrizDisponibilidade({
-  professorId,
   slots,
   iniciais,
+  aoSalvar,
+  variante = "completa",
+  carga,
+  textoSalvar = "Salvar disponibilidade",
+  mensagemSalvo = "Disponibilidade salva.",
 }: {
-  professorId: string;
   slots: SlotMatriz[];
   iniciais: Record<string, StatusDisponibilidade>;
+  /** Server Action que regrava as marcações (já ligada ao dono). */
+  aoSalvar: (marcacoes: Marcacao[]) => Promise<EstadoCadastro>;
+  variante?: Variante;
+  /** Turma: carga atribuída, comparada ao vivo com os horários com aula. */
+  carga?: number;
+  textoSalvar?: string;
+  mensagemSalvo?: string;
 }) {
+  const { ciclo, rotulos, cores, ajuda } = VARIANTES[variante];
   const [status, setStatus] =
     useState<Record<string, StatusDisponibilidade>>(iniciais);
   const [pintando, setPintando] = useState<StatusDisponibilidade | null>(null);
@@ -48,13 +94,15 @@ export function MatrizDisponibilidade({
     setStatus((s) => ({ ...s, [id]: novo }));
   }
 
+  const semAula = slots.filter((s) => statusDe(s.id) === "indisponivel").length;
+
   function salvar() {
     iniciar(async () => {
       setOk(false);
       const marcacoes = Object.entries(status)
         .filter(([, st]) => st !== "disponivel")
         .map(([slot_id, st]) => ({ slot_id, status: st }));
-      const r = await salvarDisponibilidades(professorId, marcacoes);
+      const r = await aoSalvar(marcacoes);
       setErro(r.erro);
       setOk(!!r.sucesso);
     });
@@ -101,10 +149,10 @@ export function MatrizDisponibilidade({
                       return (
                         <td
                           key={d}
-                          title={ROTULO_STATUS[atual]}
-                          className={`border px-4 py-2 cursor-pointer ${COR_STATUS[atual]}`}
+                          title={rotulos[atual]}
+                          className={`border px-4 py-2 cursor-pointer ${cores[atual]}`}
                           onMouseDown={() => {
-                            const novo = proximoStatus(atual);
+                            const novo = proximoStatus(atual, ciclo);
                             aplicar(slot.id, novo);
                             setPintando(novo);
                           }}
@@ -112,7 +160,7 @@ export function MatrizDisponibilidade({
                             if (pintando) aplicar(slot.id, pintando);
                           }}
                         >
-                          {ROTULO_STATUS[atual][0]}
+                          {rotulos[atual][0]}
                         </td>
                       );
                     })}
@@ -123,17 +171,27 @@ export function MatrizDisponibilidade({
           </div>
         );
       })}
+      {carga !== undefined && (
+        <ResumoCarga carga={carga} comAula={slots.length - semAula} />
+      )}
       <div className="flex items-center gap-3">
         <Button onClick={salvar} disabled={pendente}>
-          {pendente ? "Salvando..." : "Salvar disponibilidade"}
+          {pendente ? "Salvando..." : textoSalvar}
         </Button>
-        <span className="text-xs text-muted-foreground">
-          Clique cicla Disponível → Indisponível → Prefere → Evita; arraste
-          para pintar vários slots.
-        </span>
+        <span className="text-xs text-muted-foreground">{ajuda}</span>
       </div>
       {erro && <p className="text-sm text-red-600">{erro}</p>}
-      {ok && <p className="text-sm text-green-700">Disponibilidade salva.</p>}
+      {ok && <p className="text-sm text-green-700">{mensagemSalvo}</p>}
     </div>
+  );
+}
+
+function ResumoCarga({ carga, comAula }: { carga: number; comAula: number }) {
+  const bate = carga === comAula;
+  return (
+    <p className={`text-sm ${bate ? "text-green-700" : "text-amber-600"}`}>
+      Carga atribuída: {carga} de {comAula} horários com aula
+      {bate ? "." : " — ajuste as atribuições ou os horários sem aula antes de gerar."}
+    </p>
   );
 }
