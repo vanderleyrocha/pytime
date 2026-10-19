@@ -147,3 +147,24 @@ def test_nao_mesmo_dia_soft_marca_as_aulas_das_duas_disciplinas():
     assert segunda.descricao == "Turma 1: Mat e His na segunda"
     assert [c.slot_id for c in segunda.celulas] == [f"manha-d0-h{h}" for h in range(4)]
     assert [c.slot_id for c in terca.celulas] == [f"manha-d1-h{h}" for h in range(4)]
+
+
+def test_ultimo_horario_e_o_ultimo_da_turma_quando_ela_sai_mais_cedo():
+    # sexta sem o 4º horário: o último da turma na sexta passa a ser o 3º
+    inst = instancia_minima(
+        regras=[
+            RegraConfig(
+                id="r-ult",
+                tipo="ultimo_horario",
+                hard=True,
+                parametros={"disciplina_id": "mat"},
+            ),
+        ]
+    )
+    inst.turmas[0].disponibilidade = {"manha-d4-h3": "indisponivel"}
+    next(a for a in inst.atribuicoes if a.id == "a-his").carga_semanal = 3
+    r = resolver(inst)
+    assert r.status == "otimo"
+    slots_mat = {a.slot_id for a in r.grade if a.atribuicao_id == "a-mat"}
+    assert "manha-d4-h2" not in slots_mat
+    assert all(not s.endswith("-h3") for s in slots_mat)

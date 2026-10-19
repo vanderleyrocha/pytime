@@ -10,7 +10,7 @@ from pytime_engine.instancia import (
     Turma,
     Turno,
 )
-from pytime_engine.resultado import Celula
+from pytime_engine.resultado import AulaAlocada, Celula
 
 DISPONIBILIDADE = RegraConfig(id="r-disp", tipo="disponibilidade_professor", hard=True)
 SINCRONIZADA = RegraConfig(
@@ -139,4 +139,25 @@ def test_sincronizada_soft_marca_as_aulas_fora_de_sincronia():
                 Celula(slot_id="manha-d1-h1", turma_id="t2"),
             ],
         ),
+    ]
+
+
+def test_sincronizada_compara_tambem_horarios_que_a_referencia_nao_tem():
+    # t1 (referência) não tem aula na terça, 2º horário; a Eletiva de t2
+    # nesse horário também está fora de sincronia.
+    soft = SINCRONIZADA.model_copy(update={"hard": False})
+    inst = duas_turmas([soft])
+    inst.turmas[0].disponibilidade = {"manha-d1-h1": "indisponivel"}
+    next(a for a in inst.atribuicoes if a.id == "a-mat-t1").carga_semanal = 1
+    grade = [
+        AulaAlocada(atribuicao_id="a-ele-t1", slot_id="manha-d0-h0"),
+        AulaAlocada(atribuicao_id="a-ele-t1", slot_id="manha-d0-h1"),
+        AulaAlocada(atribuicao_id="a-mat-t1", slot_id="manha-d1-h0"),
+    ] + grade_fixa(["ele mat", "mat ele"], "-t2")
+
+    [custo] = avaliar(inst, grade).custos
+
+    assert [o.descricao for o in custo.ocorrencias] == [
+        "Eletiva fora de sincronia em T2 (segunda, 2º horário)",
+        "Eletiva fora de sincronia em T2 (terça, 2º horário)",
     ]

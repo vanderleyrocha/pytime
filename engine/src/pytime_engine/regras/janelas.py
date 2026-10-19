@@ -8,6 +8,10 @@ class RegraJanelasProfessor(Regra):
     """Penaliza buracos entre a primeira e a última aula do dia.
 
     janelas = (ultimo - primeiro + 1) - aulas_no_dia, por professor × dia.
+
+    Limitação: a conta corre sobre os horários que alguma turma do professor
+    tem no dia; um horário que nenhuma delas tem (lacuna de ordem no turno
+    ou horário sem aula em todas) não conta como janela.
     """
 
     tipo = "janelas_professor"
