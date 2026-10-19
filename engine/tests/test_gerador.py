@@ -1,5 +1,6 @@
 from pytime_engine import resolver
 from pytime_engine.gerador import gerar
+from pytime_engine.instancia import Disponibilidade
 
 
 def test_gerar_e_deterministico():
@@ -26,3 +27,21 @@ def test_instancia_pequena_resolve():
     assert r.status in ("otimo", "viavel")
     carga_total = sum(a.carga_semanal for a in inst.atribuicoes)
     assert len(r.grade) == carga_total
+
+
+def test_turmas_sem_ultimo_horario_de_sexta():
+    inst = gerar(6, seed=1, fracao_sem_aula=0.5)
+    sem_aula = [t for t in inst.turmas if t.disponibilidade]
+    assert len(sem_aula) == 3
+    for turma in sem_aula:
+        assert turma.disponibilidade == {
+            f"{turma.turno_id}-d4-h4": Disponibilidade.INDISPONIVEL
+        }
+    assert inst.validar_matriz_cheia() == []
+    inst.budget_segundos = 10
+    r = resolver(inst)
+    assert r.status in ("otimo", "viavel")
+
+
+def test_fracao_sem_aula_zero_nao_muda_a_instancia():
+    assert gerar(4, seed=3, fracao_sem_aula=0.0) == gerar(4, seed=3)
