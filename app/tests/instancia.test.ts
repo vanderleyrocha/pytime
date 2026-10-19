@@ -26,6 +26,8 @@ const dados: DadosUnidade = {
     },
   ],
   atribuicaoRecursos: [{ atribuicao_id: "a1", recurso_id: "r1" }],
+  turmasSemAula: [],
+  disponibilidadesDisciplina: [],
   regras: [
     {
       id: "rg1",
@@ -57,5 +59,26 @@ describe("montarInstancia", () => {
     const inst = montarInstancia(semMarcacoes, 60);
     expect(inst.professores[0].disponibilidade).toEqual({});
     expect(inst.atribuicoes[0].recurso_ids).toEqual(["r1"]);
+  });
+
+  it("leva os horários sem aula da turma e a disponibilidade da disciplina", () => {
+    const inst = montarInstancia(
+      {
+        ...dados,
+        turmasSemAula: [{ turma_id: "tu1", slot_id: "s2" }],
+        disponibilidadesDisciplina: [
+          { disciplina_id: "d1", slot_id: "s1", status: "evita" },
+        ],
+      },
+      60,
+    );
+    expect(inst.turmas[0].disponibilidade).toEqual({ s2: "indisponivel" });
+    expect(inst.disciplinas[0].disponibilidade).toEqual({ s1: "evita" });
+  });
+
+  it("turma e disciplina sem marcações têm disponibilidade vazia", () => {
+    const inst = montarInstancia(dados, 60);
+    expect(inst.turmas[0].disponibilidade).toEqual({});
+    expect(inst.disciplinas[0].disponibilidade).toEqual({});
   });
 });

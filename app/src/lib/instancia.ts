@@ -19,6 +19,13 @@ export type DadosUnidade = {
     geminadas: number;
   }[];
   atribuicaoRecursos: { atribuicao_id: string; recurso_id: string }[];
+  /** Horários do turno em que a turma não tem aula. */
+  turmasSemAula: { turma_id: string; slot_id: string }[];
+  disponibilidadesDisciplina: {
+    disciplina_id: string;
+    slot_id: string;
+    status: string;
+  }[];
   regras: {
     id: string;
     tipo: string;
@@ -33,8 +40,19 @@ export type DadosUnidade = {
 export type InstanciaMotor = {
   turnos: { id: string; nome: string }[];
   slots: { id: string; dia: number; ordem: number; turno_id: string }[];
-  turmas: { id: string; nome: string; turno_id: string }[];
-  disciplinas: { id: string; nome: string }[];
+  // disponibilidade de turma/disciplina é opcional: snapshots de gerações
+  // anteriores a ela não têm o campo (o motor assume vazio)
+  turmas: {
+    id: string;
+    nome: string;
+    turno_id: string;
+    disponibilidade?: Record<string, string>;
+  }[];
+  disciplinas: {
+    id: string;
+    nome: string;
+    disponibilidade?: Record<string, string>;
+  }[];
   professores: {
     id: string;
     nome: string;
@@ -66,12 +84,19 @@ export function montarInstancia(
   dados: DadosUnidade,
   budgetSegundos: number,
 ): InstanciaMotor {
-  const disponibilidadePorProfessor = new Map<string, Record<string, string>>();
-  for (const d of dados.disponibilidades) {
-    const mapa = disponibilidadePorProfessor.get(d.professor_id) ?? {};
-    mapa[d.slot_id] = d.status;
-    disponibilidadePorProfessor.set(d.professor_id, mapa);
-  }
+  const disponibilidadePorProfessor = agruparPorSlot(
+    dados.disponibilidades.map((d) => [d.professor_id, d.slot_id, d.status]),
+  );
+  const disponibilidadePorTurma = agruparPorSlot(
+    dados.turmasSemAula.map((t) => [t.turma_id, t.slot_id, "indisponivel"]),
+  );
+  const disponibilidadePorDisciplina = agruparPorSlot(
+    dados.disponibilidadesDisciplina.map((d) => [
+      d.disciplina_id,
+      d.slot_id,
+      d.status,
+    ]),
+  );
   const recursosPorAtribuicao = new Map<string, string[]>();
   for (const ar of dados.atribuicaoRecursos) {
     const lista = recursosPorAtribuicao.get(ar.atribuicao_id) ?? [];
@@ -81,8 +106,14 @@ export function montarInstancia(
   return {
     turnos: dados.turnos,
     slots: dados.slots,
-    turmas: dados.turmas,
-    disciplinas: dados.disciplinas,
+    turmas: dados.turmas.map((t) => ({
+      ...t,
+      disponibilidade: disponibilidadePorTurma.get(t.id) ?? {},
+    })),
+    disciplinas: dados.disciplinas.map((d) => ({
+      ...d,
+      disponibilidade: disponibilidadePorDisciplina.get(d.id) ?? {},
+    })),
     professores: dados.professores.map((p) => ({
       ...p,
       disponibilidade: disponibilidadePorProfessor.get(p.id) ?? {},
@@ -95,6 +126,19 @@ export function montarInstancia(
     regras: dados.regras,
     budget_segundos: budgetSegundos,
   };
+}
+
+/** (dono, slot, status) -> mapa dono -> {slot: status}. */
+function agruparPorSlot(
+  linhas: [string, string, string][],
+): Map<string, Record<string, string>> {
+  const porDono = new Map<string, Record<string, string>>();
+  for (const [dono, slot, status] of linhas) {
+    const mapa = porDono.get(dono) ?? {};
+    mapa[slot] = status;
+    porDono.set(dono, mapa);
+  }
+  return porDono;
 }
 
 /** Lê todas as tabelas da unidade necessárias para montar a instância. */
@@ -112,6 +156,8 @@ export async function buscarDadosUnidade(
     recursos,
     atribuicoes,
     atribuicaoRecursos,
+    turmasSemAula,
+    disponibilidadesDisciplina,
     regras,
   ] = await Promise.all([
     supabase.from("turnos").select("id, nome").eq("unidade_id", unidadeId),
@@ -155,6 +201,22 @@ export async function buscarDadosUnidade(
         .order("recurso_id")
         .range(de, ate),
     ),
+    lerTodas((de, ate) =>
+      supabase
+        .from("turmas_sem_aula")
+        .select("turma_id, slot_id")
+        .eq("unidade_id", unidadeId)
+        .order("id")
+        .range(de, ate),
+    ),
+    lerTodas((de, ate) =>
+      supabase
+        .from("disponibilidades_disciplina")
+        .select("disciplina_id, slot_id, status")
+        .eq("unidade_id", unidadeId)
+        .order("id")
+        .range(de, ate),
+    ),
     supabase
       .from("regras")
       .select("id, tipo, hard, peso, ativa, parametros")
@@ -170,6 +232,8 @@ export async function buscarDadosUnidade(
     recursos,
     atribuicoes,
     atribuicaoRecursos,
+    turmasSemAula,
+    disponibilidadesDisciplina,
     regras,
   ].find((r) => r.error);
   if (erro?.error) {
@@ -190,6 +254,8 @@ export async function buscarDadosUnidade(
     atribuicaoRecursos: (atribuicaoRecursos.data ?? []).filter((ar) =>
       idsAtribuicoes.has(ar.atribuicao_id),
     ),
+    turmasSemAula: turmasSemAula.data ?? [],
+    disponibilidadesDisciplina: disponibilidadesDisciplina.data ?? [],
     regras: (regras.data ?? []) as DadosUnidade["regras"],
   };
 }

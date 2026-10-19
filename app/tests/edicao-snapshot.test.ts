@@ -68,4 +68,21 @@ describe("impressaoInstancia", () => {
       expect(impressaoInstancia(outra)).not.toBe(original);
     }
   });
+
+  it("snapshot sem disponibilidade de turma/disciplina equivale a vazia", () => {
+    const antigo = base();
+    const atual = base();
+    atual.turmas = atual.turmas.map((t) => ({ ...t, disponibilidade: {} }));
+    atual.disciplinas = atual.disciplinas.map((d) => ({
+      ...d,
+      disponibilidade: {},
+    }));
+    expect(impressaoInstancia(atual)).toBe(impressaoInstancia(antigo));
+  });
+
+  it("muda quando a turma ganha horário sem aula", () => {
+    const b = base();
+    b.turmas[0].disponibilidade = { s2: "indisponivel" };
+    expect(impressaoInstancia(b)).not.toBe(impressaoInstancia(base()));
+  });
 });

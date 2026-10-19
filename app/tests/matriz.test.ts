@@ -32,4 +32,15 @@ describe("calcularPendencias", () => {
       calcularPendencias(turmas, { manha: 20 }, { t1: 20, t2: 20 }),
     ).toEqual([]);
   });
+  it("desconta os horários sem aula da turma", () => {
+    const pendencias = calcularPendencias(
+      turmas,
+      { manha: 20 },
+      { t1: 18, t2: 18 },
+      { t1: 2 },
+    );
+    expect(pendencias).toEqual([
+      { turma_id: "t2", turma_nome: "6º B", esperado: 20, atual: 18 },
+    ]);
+  });
 });
