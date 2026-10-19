@@ -95,7 +95,7 @@ def test_json_antigo_sem_disponibilidade_de_turma_e_disciplina_carrega():
 
 @pytest.mark.parametrize("status", ["prefere", "evita"])
 def test_turma_so_aceita_disponivel_ou_indisponivel(status):
-    with pytest.raises(ValidationError, match="Turma só aceita"):
+    with pytest.raises(ValidationError, match="Turma 6º A só aceita"):
         Turma(id="6a", nome="6º A", turno_id="manha", disponibilidade={"x": status})
 
 
