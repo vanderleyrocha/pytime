@@ -347,3 +347,49 @@ Arquivos: `lib/carga/csv.ts`, `pacote.ts`, `validacao.ts`, `arquivos.ts`,
    - `disciplina_sincronizada` entre turmas com tempos diferentes pode ficar
      inviável na versão hard — mensagem do núcleo já sugere desativar; citar
      "tempos sem aula diferentes entre as turmas" no texto.
+
+---
+
+## Execução (19/10/2026)
+
+Tasks 1–12 implementadas na branch `claude/nice-bell-1o7bdc`; Task 13
+pendente (ver abaixo).
+
+**Benchmark** (`bench/benchmark.py`, seed 7, budget 60 s, VM compartilhada;
+master × branch rodados em sequência na mesma máquina):
+
+| turmas | master: status / custo / tempo | branch | branch `--sem-aula 0.25` |
+|---|---|---|---|
+| 20 | viavel / 471 / 60,4 s | viavel / 462 / 60,4 s | viavel / 452 / 60,5 s (495 aulas) |
+| 40 | viavel / 1137 / 60,8 s | viavel / 1146 / 60,9 s | viavel / 1052 / 60,7 s (990 aulas) |
+| 80 | viavel / 8786 / 61,6 s | viavel / 5648 / 61,7 s | viavel / 5761 / 61,6 s (1980 aulas) |
+
+Sem regressão de tempo; a variação de custo é ruído de soluções `viavel`
+(sem prova de ótimo) — o modelo sem marcações é idêntico ao da master.
+
+**Testes de banco:** os 14 arquivos pgTAP (incluindo `0013` e `0014`, novos)
+passam num Postgres 16 local com uma emulação mínima do Supabase (roles
+`anon`/`authenticated`/`service_role`, `auth.uid()`/`auth.jwt()`, pgTAP em
+`extensions`). Worker: 19 testes passando contra o mesmo banco local.
+
+**Desvios do plano:**
+
+- Task 3: `janelas_professor` só ganhou a limitação na docstring, sem teste
+  — fixar em teste um comportamento que é limitação não protege nada.
+- Task 5: a regra `disponibilidade_disciplina` não entrou nas regras padrão
+  do `gerador` (sem marcações de disciplina ela não restringe nada).
+- Task 12: além do CSV, o JSON Schema (`docs/carga/pacote-carga.schema.json`)
+  e a RPC `importar_pacote_carga` (migração `20261019000100`) ganharam as
+  seções; disponibilidade de disciplina e horário sem aula importados não
+  apagam marcações existentes (modo "mesclar", como as disponibilidades).
+- Snapshot: `impressaoInstancia` trata `disponibilidade` ausente (gerações
+  antigas) como vazia, senão toda geração antiga acusaria "cadastros
+  mudaram".
+
+**Pendente (Task 13):** E2E Playwright no staging (exige as envs do staging
+e um validador local) e a limpeza dos dados reais (roteiro acima: marcar os
+horários sem aula da 1A/1B, apagar "Vago 1A"/"Vago 1B"/"Horário livre",
+gerar de novo e comparar). Aplicar as migrações `20261019000000` e
+`20261019000100` antes do deploy do app; o motor do worker/validador precisa
+ser publicado junto (o app passa a mandar `disponibilidade` em turmas e
+disciplinas, que o motor antigo ignora — sem quebra, mas sem efeito).
