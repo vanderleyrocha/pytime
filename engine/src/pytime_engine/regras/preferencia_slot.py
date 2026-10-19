@@ -90,3 +90,55 @@ class RegraPreferenciaDisciplina(Regra):
                         f" {nome_disciplina}: {motivo} ({rotulo_slot(s)})",
                         aulas_em([aula.atribuicao.id], [s.id], "turma"),
                     )
+
+
+@registrar
+class RegraPreferenciaDisciplinaHorario(Regra):
+    """Penaliza aula da disciplina em slot 'evita' e fora dos slots 'prefere'.
+
+    Lê `Disciplina.disponibilidade` (matriz por slot, como a do professor);
+    `indisponivel` é da regra hard `disponibilidade_disciplina`. Diferente de
+    `preferencia_disciplina`, que marca posições no dia (ordens) e vale para
+    qualquer turno. Custo de 1×peso por aula; ocorrências na grade da turma.
+
+    Limitação: 'prefere' conta só os slots marcados na matriz; uma disciplina
+    oferecida em dois turnos com 'prefere' marcado só num deles paga todas as
+    aulas do outro turno.
+    """
+
+    tipo = "preferencia_disciplina_horario"
+
+    def aplicar(self, ctx: ContextoModelo) -> None:
+        nome_turma = {t.id: t.nome for t in ctx.instancia.turmas}
+        for disciplina in ctx.instancia.disciplinas:
+            evita = {
+                s
+                for s, st in disciplina.disponibilidade.items()
+                if st == Disponibilidade.EVITA
+            }
+            prefere = {
+                s
+                for s, st in disciplina.disponibilidade.items()
+                if st == Disponibilidade.PREFERE
+            }
+            if not evita and not prefere:
+                continue
+            for i, aula in enumerate(ctx.aulas):
+                if aula.atribuicao.disciplina_id != disciplina.id:
+                    continue
+                turma = nome_turma[aula.atribuicao.turma_id]
+                for s in ctx.slots_da_turma(aula.atribuicao.turma_id):
+                    if s.id in evita:
+                        motivo = "aula em horário evitado"
+                    elif prefere and s.id not in prefere:
+                        motivo = "aula fora dos horários preferidos"
+                    else:
+                        continue
+                    ctx.adicionar_custo(
+                        self.config.id,
+                        self.tipo,
+                        ctx.x[(i, s.id)],
+                        self.config.peso,
+                        f"{turma} – {disciplina.nome}: {motivo} ({rotulo_slot(s)})",
+                        aulas_em([aula.atribuicao.id], [s.id], "turma"),
+                    )
