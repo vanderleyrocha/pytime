@@ -59,3 +59,36 @@ def test_adicionar_custo_e_assumption():
     assert termo.localizar is None
     lit = ctx.assumption("disponibilidade:ana")
     assert ctx.assumption("disponibilidade:ana") is lit  # idempotente
+
+
+def _turma_sem_sexta_tarde(inst):
+    """Turma única sem os dois últimos horários de sexta; carga ajustada."""
+    inst.turmas[0].disponibilidade = {
+        "manha-d4-h2": "indisponivel",
+        "manha-d4-h3": "indisponivel",
+    }
+    next(a for a in inst.atribuicoes if a.id == "a-his").carga_semanal = 2
+    return inst
+
+
+def test_slot_indisponivel_da_turma_nao_gera_variavel():
+    ctx = ContextoModelo(_turma_sem_sexta_tarde(instancia_minima()))
+    assert len(ctx.aulas) == 18
+    assert len(ctx.x) == 18 * 18
+    assert all(s not in ("manha-d4-h2", "manha-d4-h3") for _, s in ctx.x)
+    assert [s.id for s in ctx.slots_da_turma("t1")][-2:] == [
+        "manha-d4-h0",
+        "manha-d4-h1",
+    ]
+
+
+def test_turma_com_slots_indisponiveis_preenche_so_os_disponiveis():
+    ctx = ContextoModelo(_turma_sem_sexta_tarde(instancia_minima()))
+    solver = resolver_bruto(ctx)
+    for slot in ctx.slots_da_turma("t1"):
+        ocupacao = sum(
+            solver.Value(ctx.x[(i, slot.id)])
+            for i in range(len(ctx.aulas))
+            if (i, slot.id) in ctx.x
+        )
+        assert ocupacao == 1
