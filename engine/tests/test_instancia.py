@@ -4,6 +4,7 @@ from pydantic import ValidationError
 from pytime_engine.instancia import (
     Atribuicao,
     Disciplina,
+    Disponibilidade,
     Instancia,
     Professor,
     Slot,
@@ -74,3 +75,58 @@ def test_validar_matriz_cheia_detecta_furo():
     erros = inst.validar_matriz_cheia()
     assert len(erros) == 1
     assert "6º A" in erros[0]
+
+
+def test_disponibilidade_de_turma_e_disciplina_default_vazio():
+    inst = instancia_2slots()
+    assert inst.turmas[0].disponibilidade == {}
+    assert inst.disciplinas[0].disponibilidade == {}
+
+
+def test_json_antigo_sem_disponibilidade_de_turma_e_disciplina_carrega():
+    dados = instancia_2slots().model_dump()
+    for t in dados["turmas"]:
+        del t["disponibilidade"]
+    for d in dados["disciplinas"]:
+        del d["disponibilidade"]
+    inst = Instancia.model_validate(dados)
+    assert inst.turmas[0].disponibilidade == {}
+
+
+@pytest.mark.parametrize("status", ["prefere", "evita"])
+def test_turma_so_aceita_disponivel_ou_indisponivel(status):
+    with pytest.raises(ValidationError, match="Turma só aceita"):
+        Turma(id="6a", nome="6º A", turno_id="manha", disponibilidade={"x": status})
+
+
+def test_disciplina_aceita_os_quatro_status():
+    d = Disciplina(
+        id="ef",
+        nome="Ed. Física",
+        disponibilidade={
+            "a": "disponivel",
+            "b": "indisponivel",
+            "c": "prefere",
+            "d": "evita",
+        },
+    )
+    assert len(d.disponibilidade) == 4
+
+
+def test_slots_da_turma_exclui_indisponiveis():
+    inst = instancia_2slots()
+    inst.turmas[0].disponibilidade = {"seg-2": Disponibilidade.INDISPONIVEL}
+    assert [s.id for s in inst.slots_da_turma(inst.turmas[0])] == ["seg-1"]
+
+
+def test_validar_matriz_cheia_conta_so_slots_disponiveis_da_turma():
+    inst = instancia_2slots()
+    inst.turmas[0].disponibilidade = {"seg-2": Disponibilidade.INDISPONIVEL}
+    inst.atribuicoes[0].carga_semanal = 1
+    assert inst.validar_matriz_cheia() == []
+    inst.atribuicoes[0].carga_semanal = 2
+    erros = inst.validar_matriz_cheia()
+    assert erros == [
+        "Turma 6º A: carga total 2 difere do número de horários disponíveis"
+        " da turma (1 de 2 do turno)."
+    ]
