@@ -367,3 +367,41 @@ def test_avaliador_preparado_de_instancia_invalida_so_devolve_os_erros():
     av = AvaliadorPreparado(inst).avaliar(GRADE_COM_JANELAS)
     assert av.violacoes_hard
     assert all(v.startswith("instancia:") for v in av.violacoes_hard)
+
+
+def _sem_sexta_tarde(inst: Instancia) -> Instancia:
+    inst.turmas[0].disponibilidade = {
+        "manha-d4-h2": Disponibilidade.INDISPONIVEL,
+        "manha-d4-h3": Disponibilidade.INDISPONIVEL,
+    }
+    next(a for a in inst.atribuicoes if a.id == "a-his").carga_semanal = 2
+    return inst
+
+
+def test_turma_com_horarios_sem_aula_avalia_normalmente():
+    inst = _sem_sexta_tarde(
+        instancia_minima(
+            regras=[RegraConfig(id="r-jan", tipo="janelas_professor", hard=False)]
+        )
+    )
+    r = resolver(inst)
+    assert r.status == "otimo"
+
+    av = avaliar(inst, r.grade)
+
+    assert av.violacoes_hard == []
+    assert av.custo_total == r.custo_total
+
+
+def test_aula_em_horario_sem_aula_da_turma_e_estrutural():
+    inst = _sem_sexta_tarde(instancia_minima())
+    grade = _grade_sem_regras(inst)
+    movida = next(a for a in grade if a.slot_id == "manha-d4-h1")
+    movida.slot_id = "manha-d4-h2"
+
+    av = avaliar(inst, grade)
+
+    assert av.violacoes_hard == [
+        "estrutural:turma_indisponivel:t1:manha-d4-h2",
+        "estrutural:turma_vazio:t1:manha-d4-h1",
+    ]
