@@ -14,7 +14,9 @@ export type TipoRegra =
   | "ultimo_horario"
   | "nao_mesmo_dia"
   | "aulas_juntas"
-  | "disciplina_sincronizada";
+  | "disciplina_sincronizada"
+  | "disponibilidade_disciplina"
+  | "preferencia_disciplina_horario";
 
 export const CATALOGO_REGRAS: Record<
   TipoRegra,
@@ -95,6 +97,20 @@ export const CATALOGO_REGRAS: Record<
     modo: "alternavel",
     temParametros: true,
   },
+  disponibilidade_disciplina: {
+    rotulo: "Disponibilidade da disciplina",
+    descricao:
+      "Nunca alocar a disciplina em horário marcado como indisponível na disponibilidade dela (Disciplinas).",
+    modo: "fixa_hard",
+    temParametros: false,
+  },
+  preferencia_disciplina_horario: {
+    rotulo: "Preferências da disciplina",
+    descricao:
+      "Penaliza aulas da disciplina nos horários 'evita' e fora dos 'prefere' da disponibilidade dela (Disciplinas).",
+    modo: "fixa_soft",
+    temParametros: false,
+  },
 };
 
 export function hardPadrao(tipo: TipoRegra): boolean {
@@ -113,6 +129,8 @@ export const esquemaParametros = z
     semParametros("preferencia_professor"),
     semParametros("compactacao_dias"),
     semParametros("aulas_juntas"),
+    semParametros("disponibilidade_disciplina"),
+    semParametros("preferencia_disciplina_horario"),
     z.object({
       tipo: z.literal("disciplina_sincronizada"),
       disciplina_id: z.uuid("Escolha a disciplina"),
