@@ -65,9 +65,9 @@ class AvaliadorPreparado:
 
     Limitações: erros da própria instância voltam como `instancia:<frase>`;
     se a grade quebra uma restrição estrutural (carga, turma ou professor em
-    choque, slot fora do turno), só essas violações são devolvidas — com a
-    grade fixada o modelo seria inviável, então regras do catálogo e custos
-    não são avaliados.
+    choque, slot fora do turno ou em horário sem aula da turma), só essas
+    violações são devolvidas — com a grade fixada o modelo seria inviável,
+    então regras do catálogo e custos não são avaliados.
 
     Concorrência: cada `avaliar` clona o modelo e usa um solver próprio, mas
     a segurança de clonar o mesmo `CpModel` de várias threads não é garantida
@@ -162,6 +162,10 @@ def _violacoes_estruturais(instancia: Instancia, grade: list[AulaAlocada]) -> li
     slots_do_turno: dict[str, set[str]] = defaultdict(set)
     for s in instancia.slots:
         slots_do_turno[s.turno_id].add(s.id)
+    # slots em que a turma tem aula (o turno menos os marcados sem aula)
+    slots_da_turma = {
+        t.id: {s.id for s in instancia.slots_da_turma(t)} for t in instancia.turmas
+    }
 
     erros: set[str] = set()
     carga: Counter[str] = Counter()
@@ -176,14 +180,17 @@ def _violacoes_estruturais(instancia: Instancia, grade: list[AulaAlocada]) -> li
         if aula.slot_id not in slots_do_turno[turno_da_turma[atrib.turma_id]]:
             erros.add(f"estrutural:fora_do_turno:{atrib.id}:{aula.slot_id}")
             continue
+        if aula.slot_id not in slots_da_turma[atrib.turma_id]:
+            erros.add(f"estrutural:turma_indisponivel:{atrib.turma_id}:{aula.slot_id}")
+            continue
         ocupacao_turma[(atrib.turma_id, aula.slot_id)] += 1
         ocupacao_professor[(atrib.professor_id, aula.slot_id)] += 1
 
     for atrib in instancia.atribuicoes:
         if carga[atrib.id] != atrib.carga_semanal:
             erros.add(f"estrutural:carga:{atrib.id}")
-    for turma_id, turno_id in turno_da_turma.items():
-        for slot_id in slots_do_turno[turno_id]:
+    for turma_id, slots in slots_da_turma.items():
+        for slot_id in slots:
             n = ocupacao_turma[(turma_id, slot_id)]
             if n == 0:
                 erros.add(f"estrutural:turma_vazio:{turma_id}:{slot_id}")

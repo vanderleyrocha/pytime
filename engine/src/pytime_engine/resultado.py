@@ -65,8 +65,10 @@ class Avaliacao(BaseModel):
 
     `violacoes_hard` usa o mesmo formato de `Resultado.nucleo_conflito`
     (ex. `disponibilidade:<professor_id>`), mais `estrutural:<tipo>:<id>[:<slot_id>]`
-    para as restrições básicas do modelo e `instancia:<frase>` para erros da
-    própria instância (não da grade).
+    para as restrições básicas do modelo (`carga`, `turma_vazio`,
+    `turma_duplo`, `turma_indisponivel` — aula em horário sem aula da turma —,
+    `professor_duplo`, `fora_do_turno`, `atribuicao_desconhecida`) e
+    `instancia:<frase>` para erros da própria instância (não da grade).
     """
 
     violacoes_hard: list[str] = Field(default_factory=list)
