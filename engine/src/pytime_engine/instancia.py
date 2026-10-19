@@ -1,6 +1,6 @@
 from enum import StrEnum
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, ValidationInfo, field_validator
 
 
 class Disponibilidade(StrEnum):
@@ -33,7 +33,7 @@ class Turma(BaseModel):
     @field_validator("disponibilidade")
     @classmethod
     def _so_disponivel_ou_indisponivel(
-        cls, valor: dict[str, Disponibilidade]
+        cls, valor: dict[str, Disponibilidade], info: ValidationInfo
     ) -> dict[str, Disponibilidade]:
         invalidos = sorted(
             s
@@ -42,7 +42,8 @@ class Turma(BaseModel):
         )
         if invalidos:
             raise ValueError(
-                "Turma só aceita 'disponivel' ou 'indisponivel' na disponibilidade"
+                f"Turma {info.data.get('nome', '?')} só aceita 'disponivel' ou"
+                " 'indisponivel' na disponibilidade"
                 f" (slots: {', '.join(invalidos)})."
             )
         return valor

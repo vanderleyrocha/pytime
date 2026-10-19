@@ -20,16 +20,16 @@ class RegraDisponibilidadeDisciplina(Regra):
 
     def aplicar(self, ctx: ContextoModelo) -> None:
         indisp_por_disciplina = {
-            d.id: {
+            d.id: sorted(
                 s
                 for s, st in d.disponibilidade.items()
                 if st == Disponibilidade.INDISPONIVEL
-            }
+            )
             for d in ctx.instancia.disciplinas
         }
         for i, aula in enumerate(ctx.aulas):
             disciplina_id = aula.atribuicao.disciplina_id
-            for slot_id in sorted(indisp_por_disciplina.get(disciplina_id, ())):
+            for slot_id in indisp_por_disciplina.get(disciplina_id, ()):
                 if (i, slot_id) in ctx.x:
                     lit = ctx.assumption(f"disponibilidade_disciplina:{disciplina_id}")
                     ctx.model.add(ctx.x[(i, slot_id)] == 0).only_enforce_if(lit)
