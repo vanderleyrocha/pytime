@@ -8,6 +8,7 @@ from . import (
     aulas_juntas,  # noqa: F401,E402
     compactacao,  # noqa: F401,E402
     disponibilidade,  # noqa: F401,E402
+    disponibilidade_disciplina,  # noqa: F401,E402
     distribuicao,  # noqa: F401,E402
     geminadas,  # noqa: F401,E402
     janelas,  # noqa: F401,E402
