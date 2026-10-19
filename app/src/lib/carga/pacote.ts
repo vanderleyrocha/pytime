@@ -46,6 +46,8 @@ const regra = z.discriminatedUnion("tipo", [
   regraFixa("janelas_professor", false),
   regraFixa("preferencia_professor", false),
   regraFixa("compactacao_dias", false),
+  regraFixa("disponibilidade_disciplina", true),
+  regraFixa("preferencia_disciplina_horario", false),
   z.strictObject({
     ...regraBase,
     tipo: z.literal("distribuicao_disciplina"),
@@ -111,6 +113,20 @@ export const esquemaPacote = z.strictObject({
     .array(
       z.strictObject({
         professor: codigo,
+        turno: codigo,
+        dia,
+        ordem,
+        status: z.enum(["disponivel", "indisponivel", "prefere", "evita"]),
+      }),
+    )
+    .default([]),
+  turmas_sem_aula: z
+    .array(z.strictObject({ turma: codigo, turno: codigo, dia, ordem }))
+    .default([]),
+  disponibilidades_disciplina: z
+    .array(
+      z.strictObject({
+        disciplina: codigo,
         turno: codigo,
         dia,
         ordem,

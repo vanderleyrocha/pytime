@@ -66,6 +66,8 @@ export const SECOES_PACOTE = [
   "professores",
   "recursos",
   "disponibilidades",
+  "turmas_sem_aula",
+  "disponibilidades_disciplina",
   "atribuicoes",
   "regras",
 ] as const;

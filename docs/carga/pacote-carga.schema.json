@@ -19,6 +19,8 @@
     "professores": { "type": "array", "items": { "$ref": "#/$defs/professor" } },
     "recursos": { "type": "array", "items": { "$ref": "#/$defs/recurso" }, "default": [] },
     "disponibilidades": { "type": "array", "items": { "$ref": "#/$defs/disponibilidade" }, "default": [] },
+    "turmas_sem_aula": { "type": "array", "items": { "$ref": "#/$defs/turma_sem_aula" }, "default": [] },
+    "disponibilidades_disciplina": { "type": "array", "items": { "$ref": "#/$defs/disponibilidade_disciplina" }, "default": [] },
     "atribuicoes": { "type": "array", "items": { "$ref": "#/$defs/atribuicao" } },
     "regras": { "type": "array", "items": { "$ref": "#/$defs/regra" }, "default": [] }
   },
@@ -132,6 +134,31 @@
         "status": { "enum": ["disponivel", "indisponivel", "prefere", "evita"] }
       }
     },
+    "turma_sem_aula": {
+      "type": "object",
+      "description": "Horário do turno em que a turma não tem aula (ex.: sai mais cedo na sexta). O horário precisa ser do turno da turma. Chave natural: (turma, turno, dia, ordem).",
+      "additionalProperties": false,
+      "required": ["turma", "turno", "dia", "ordem"],
+      "properties": {
+        "turma": { "$ref": "#/$defs/codigo" },
+        "turno": { "$ref": "#/$defs/codigo" },
+        "dia": { "$ref": "#/$defs/dia" },
+        "ordem": { "$ref": "#/$defs/ordem" }
+      }
+    },
+    "disponibilidade_disciplina": {
+      "type": "object",
+      "description": "Exceção à disponibilidade da disciplina num horário (vale para todas as turmas). Horário não listado = disponível. Chave natural: (disciplina, turno, dia, ordem).",
+      "additionalProperties": false,
+      "required": ["disciplina", "turno", "dia", "ordem", "status"],
+      "properties": {
+        "disciplina": { "$ref": "#/$defs/codigo" },
+        "turno": { "$ref": "#/$defs/codigo" },
+        "dia": { "$ref": "#/$defs/dia" },
+        "ordem": { "$ref": "#/$defs/ordem" },
+        "status": { "enum": ["disponivel", "indisponivel", "prefere", "evita"] }
+      }
+    },
     "atribuicao": {
       "type": "object",
       "description": "Professor X leciona disciplina Y na turma Z. Chave natural: (professor, disciplina, turma).",
@@ -156,7 +183,8 @@
           "enum": [
             "disponibilidade_professor", "geminadas", "recurso_compartilhado",
             "janelas_professor", "distribuicao_disciplina", "preferencia_professor",
-            "preferencia_disciplina", "compactacao_dias", "ultimo_horario", "nao_mesmo_dia"
+            "preferencia_disciplina", "compactacao_dias", "ultimo_horario", "nao_mesmo_dia",
+            "disponibilidade_disciplina", "preferencia_disciplina_horario"
           ]
         },
         "hard": { "type": "boolean" },
@@ -166,11 +194,11 @@
       },
       "allOf": [
         {
-          "if": { "properties": { "tipo": { "enum": ["disponibilidade_professor", "geminadas", "recurso_compartilhado"] } } },
+          "if": { "properties": { "tipo": { "enum": ["disponibilidade_professor", "geminadas", "recurso_compartilhado", "disponibilidade_disciplina"] } } },
           "then": { "properties": { "hard": { "const": true }, "parametros": { "type": "object", "maxProperties": 0 } } }
         },
         {
-          "if": { "properties": { "tipo": { "enum": ["janelas_professor", "preferencia_professor", "compactacao_dias"] } } },
+          "if": { "properties": { "tipo": { "enum": ["janelas_professor", "preferencia_professor", "compactacao_dias", "preferencia_disciplina_horario"] } } },
           "then": { "properties": { "hard": { "const": false }, "parametros": { "type": "object", "maxProperties": 0 } } }
         },
         {

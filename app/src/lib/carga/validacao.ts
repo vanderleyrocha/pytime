@@ -82,6 +82,18 @@ function unicidade(p: PacoteCarga): string[] {
   )) {
     erros.push(`disponibilidades: ${k} repetida.`);
   }
+  for (const k of repetidos(
+    p.turmas_sem_aula,
+    (t) => `${t.turma} em ${rotuloHorario(t.turno, t.dia, t.ordem)}`,
+  )) {
+    erros.push(`turmas_sem_aula: ${k} repetida.`);
+  }
+  for (const k of repetidos(
+    p.disponibilidades_disciplina,
+    (d) => `${d.disciplina} em ${rotuloHorario(d.turno, d.dia, d.ordem)}`,
+  )) {
+    erros.push(`disponibilidades_disciplina: ${k} repetida.`);
+  }
   for (const k of repetidos(p.atribuicoes, (a) => `${a.professor}/${a.disciplina}/${a.turma}`)) {
     erros.push(`atribuicoes: ${k} repetida.`);
   }
@@ -121,6 +133,35 @@ function referencias(p: PacoteCarga, ex: CodigosExistentes): string[] {
     if (!horarios.has(chaveHorario(d.turno, d.dia, d.ordem))) {
       erros.push(
         `disponibilidades[${i}]: horário ${rotuloHorario(d.turno, d.dia, d.ordem)} não encontrado.`,
+      );
+    }
+  });
+  // turno da turma só é conhecido para as turmas do pacote
+  const turnoDaTurma = new Map(p.turmas.map((t) => [t.codigo, t.turno]));
+  p.turmas_sem_aula.forEach((t, i) => {
+    exigir(turmas, t.turma, `turmas_sem_aula[${i}].turma`, "turma", true);
+    const turno = turnoDaTurma.get(t.turma);
+    if (!horarios.has(chaveHorario(t.turno, t.dia, t.ordem))) {
+      erros.push(
+        `turmas_sem_aula[${i}]: horário ${rotuloHorario(t.turno, t.dia, t.ordem)} não encontrado.`,
+      );
+    } else if (turno !== undefined && turno !== t.turno) {
+      erros.push(
+        `turmas_sem_aula[${i}]: horário ${rotuloHorario(t.turno, t.dia, t.ordem)} não é do turno da turma.`,
+      );
+    }
+  });
+  p.disponibilidades_disciplina.forEach((d, i) => {
+    exigir(
+      disciplinas,
+      d.disciplina,
+      `disponibilidades_disciplina[${i}].disciplina`,
+      "disciplina",
+      true,
+    );
+    if (!horarios.has(chaveHorario(d.turno, d.dia, d.ordem))) {
+      erros.push(
+        `disponibilidades_disciplina[${i}]: horário ${rotuloHorario(d.turno, d.dia, d.ordem)} não encontrado.`,
       );
     }
   });
@@ -189,11 +230,21 @@ function avisos(p: PacoteCarga, ex: CodigosExistentes): string[] {
     const carga = p.atribuicoes
       .filter((a) => a.turma === t.codigo)
       .reduce((s, a) => s + a.carga_semanal, 0);
+    const doTurno = nHorarios(t.turno);
+    const comAula =
+      doTurno -
+      new Set(
+        p.turmas_sem_aula
+          .filter((x) => x.turma === t.codigo)
+          .map((x) => chaveHorario(x.turno, x.dia, x.ordem)),
+      ).size;
     if (carga === 0) {
       avisos.push(`Turma ${t.nome}: nenhuma atribuição.`);
-    } else if (carga !== nHorarios(t.turno)) {
+    } else if (carga !== comAula) {
       avisos.push(
-        `Turma ${t.nome}: carga total ${carga} difere do número de horários do turno (${nHorarios(t.turno)}).`,
+        comAula === doTurno
+          ? `Turma ${t.nome}: carga total ${carga} difere do número de horários do turno (${doTurno}).`
+          : `Turma ${t.nome}: carga total ${carga} difere do número de horários com aula da turma (${comAula} de ${doTurno} do turno).`,
       );
     }
   }

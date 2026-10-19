@@ -195,4 +195,61 @@ describe("validarPacote", () => {
       "Recurso Laboratório: 4 aulas semanais para capacidade 1 em 2 horários.",
     );
   });
+
+  it("horários sem aula e disponibilidade de disciplina são opcionais", () => {
+    const r = validarPacote(minimo(), vazio);
+    expect(r.pacote?.turmas_sem_aula).toEqual([]);
+    expect(r.pacote?.disponibilidades_disciplina).toEqual([]);
+  });
+
+  it("matriz da turma desconta os horários sem aula", () => {
+    const p = minimo();
+    p.atribuicoes[0].carga_semanal = 1;
+    p.turmas_sem_aula = [{ turma: "TUR-1", turno: "INTEGRAL", dia: 0, ordem: 1 }];
+    p.disponibilidades_disciplina = [
+      { disciplina: "DIS-1", turno: "INTEGRAL", dia: 0, ordem: 0, status: "prefere" },
+    ];
+    p.regras = [
+      { codigo: "R1", tipo: "disponibilidade_disciplina", hard: true },
+      { codigo: "R2", tipo: "preferencia_disciplina_horario", hard: false },
+    ];
+    const r = validarPacote(p, vazio);
+    expect(r.erros).toEqual([]);
+    expect(r.avisos).toEqual([]);
+
+    p.atribuicoes[0].carga_semanal = 2;
+    expect(validarPacote(p, vazio).avisos).toContain(
+      "Turma 6º A: carga total 2 difere do número de horários com aula da turma (1 de 2 do turno).",
+    );
+  });
+
+  it("rejeita horário sem aula fora do turno da turma, inexistente ou repetido", () => {
+    const p = minimo();
+    p.turnos.push({ codigo: "NOITE", nome: "Noite" });
+    p.horarios.push({ turno: "NOITE", dia: 0, ordem: 0 });
+    p.turmas_sem_aula = [
+      { turma: "TUR-1", turno: "NOITE", dia: 0, ordem: 0 },
+      { turma: "TUR-1", turno: "INTEGRAL", dia: 3, ordem: 0 },
+      { turma: "TUR-9", turno: "INTEGRAL", dia: 0, ordem: 0 },
+      { turma: "TUR-1", turno: "INTEGRAL", dia: 0, ordem: 1 },
+      { turma: "TUR-1", turno: "INTEGRAL", dia: 0, ordem: 1 },
+    ];
+    p.disponibilidades_disciplina = [
+      { disciplina: "DIS-9", turno: "INTEGRAL", dia: 0, ordem: 0, status: "evita" },
+    ];
+    const erros = validarPacote(p, vazio).erros;
+    expect(erros).toContain(
+      "turmas_sem_aula: TUR-1 em INTEGRAL dia 0 ordem 1 repetida.",
+    );
+    const r = validarPacote(
+      { ...p, turmas_sem_aula: p.turmas_sem_aula.slice(0, 3) },
+      vazio,
+    );
+    expect(r.erros).toEqual([
+      "turmas_sem_aula[0]: horário NOITE dia 0 ordem 0 não é do turno da turma.",
+      "turmas_sem_aula[1]: horário INTEGRAL dia 3 ordem 0 não encontrado.",
+      'turmas_sem_aula[2].turma: turma "TUR-9" não encontrada.',
+      'disponibilidades_disciplina[0].disciplina: disciplina "DIS-9" não encontrada.',
+    ]);
+  });
 });

@@ -92,6 +92,8 @@ describe("resumirPacote", () => {
       professores: 0,
       recursos: 0,
       disponibilidades: 0,
+      turmas_sem_aula: 0,
+      disponibilidades_disciplina: 0,
       atribuicoes: 0,
       regras: 0,
     });

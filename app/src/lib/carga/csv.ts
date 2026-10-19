@@ -59,6 +59,11 @@ const ARQUIVOS: Record<string, { obrigatorio: boolean; tipos: Record<string, Tip
   professores: { obrigatorio: true, tipos: {} },
   recursos: { obrigatorio: false, tipos: { capacidade: "numero" } },
   disponibilidades: { obrigatorio: false, tipos: { dia: "numero", ordem: "numero" } },
+  turmas_sem_aula: { obrigatorio: false, tipos: { dia: "numero", ordem: "numero" } },
+  disponibilidades_disciplina: {
+    obrigatorio: false,
+    tipos: { dia: "numero", ordem: "numero" },
+  },
   atribuicoes: {
     obrigatorio: true,
     tipos: { carga_semanal: "numero", geminadas: "numero", recursos: "lista" },
