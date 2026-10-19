@@ -1,6 +1,6 @@
 """Benchmark tempo × qualidade do motor.
 
-Uso: python bench/benchmark.py [--turmas 20 40 80] [--budget 60]
+Uso: python bench/benchmark.py [--turmas 20 40 80] [--budget 60] [--sem-aula 0.25]
 Sai com código 1 se algum caso não alcançar solução viável no budget.
 """
 
@@ -15,12 +15,18 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--turmas", nargs="+", type=int, default=[20, 40, 80])
     parser.add_argument("--budget", type=float, default=60.0)
+    parser.add_argument(
+        "--sem-aula",
+        type=float,
+        default=0.0,
+        help="fração das turmas sem aula no último horário de sexta",
+    )
     args = parser.parse_args()
 
     print(f"{'turmas':>7} {'aulas':>7} {'status':>22} {'custo':>7} {'tempo(s)':>9}")
     falhou = False
     for n in args.turmas:
-        inst = gerar(n, seed=7)
+        inst = gerar(n, seed=7, fracao_sem_aula=args.sem_aula)
         inst.budget_segundos = args.budget
         n_aulas = sum(a.carga_semanal for a in inst.atribuicoes)
         r = resolver(inst)

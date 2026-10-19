@@ -30,7 +30,13 @@ CURRICULO = [
 DIAS, SLOTS_DIA = 5, 5
 
 
-def gerar(n_turmas: int, seed: int = 0) -> Instancia:
+def gerar(n_turmas: int, seed: int = 0, fracao_sem_aula: float = 0.0) -> Instancia:
+    """Instância sintética de `n_turmas` turmas (determinística por `seed`).
+
+    `fracao_sem_aula`: fração das turmas (as primeiras) sem aula no último
+    horário de sexta; elas perdem a atribuição de redação (carga 1) para a
+    matriz continuar cheia.
+    """
     rng = random.Random(seed)
     turnos = [Turno(id="manha", nome="Manhã")]
     if n_turmas > 15:
@@ -41,8 +47,22 @@ def gerar(n_turmas: int, seed: int = 0) -> Instancia:
         for d in range(DIAS)
         for h in range(SLOTS_DIA)
     ]
+    n_sem_aula = round(n_turmas * fracao_sem_aula)
     turmas = [
-        Turma(id=f"turma-{i}", nome=f"Turma {i}", turno_id=turnos[i % len(turnos)].id)
+        Turma(
+            id=f"turma-{i}",
+            nome=f"Turma {i}",
+            turno_id=turnos[i % len(turnos)].id,
+            disponibilidade=(
+                {
+                    f"{turnos[i % len(turnos)].id}-d{DIAS - 1}-h{SLOTS_DIA - 1}": (
+                        Disponibilidade.INDISPONIVEL
+                    )
+                }
+                if i < n_sem_aula
+                else {}
+            ),
+        )
         for i in range(n_turmas)
     ]
     disciplinas = [Disciplina(id=n, nome=n.title()) for n, *_ in CURRICULO]
@@ -113,6 +133,8 @@ def gerar(n_turmas: int, seed: int = 0) -> Instancia:
         idx_no_turno = contagem_turno.get(turma.turno_id, 0)
         contagem_turno[turma.turno_id] = idx_no_turno + 1
         for nome, carga, geminada, usa_lab in CURRICULO:
+            if nome == "redacao" and turma.disponibilidade:
+                continue  # turma sem o último horário de sexta
             profs = prof_por_turno_disciplina[(turma.turno_id, nome)]
             prof = profs[idx_no_turno % len(profs)]
             atribuicoes.append(
