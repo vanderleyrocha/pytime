@@ -390,6 +390,6 @@ passam num Postgres 16 local com uma emulação mínima do Supabase (roles
 e um validador local) e a limpeza dos dados reais (roteiro acima: marcar os
 horários sem aula da 1A/1B, apagar "Vago 1A"/"Vago 1B"/"Horário livre",
 gerar de novo e comparar). Aplicar as migrações `20261019000000` e
-`20261019000100` antes do deploy do app; o motor do worker/validador precisa
-ser publicado junto (o app passa a mandar `disponibilidade` em turmas e
-disciplinas, que o motor antigo ignora — sem quebra, mas sem efeito).
+`20261019000100` antes do deploy do app, e publicar o worker/validador junto:
+o motor antigo ignora `disponibilidade` em turmas e disciplinas e rejeitaria
+por matriz incompleta toda turma com horário sem aula.
