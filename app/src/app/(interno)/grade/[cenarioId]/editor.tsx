@@ -45,6 +45,8 @@ export type PropsEditor = {
   slots: Slot[];
   turmaInicial: string;
   turmaDaAtribuicao: Record<string, string>;
+  /** Horários sem aula por turma (snapshot da geração): não entram em troca. */
+  semAula: Record<string, string[]>;
   rotulos: Record<string, { disciplina: string; professor: string }>;
   rotulosRegra: Record<string, string>;
 };
@@ -88,14 +90,19 @@ export function Editor(p: PropsEditor) {
     );
   }
 
-  const slotsDaTurma = useMemo(() => {
+  const slotsDoTurno = useMemo(() => {
     const turno = p.turmas.find((t) => t.id === turmaId)?.turno_id;
     return p.slots.filter((s) => s.turno_id === turno);
   }, [p.slots, p.turmas, turmaId]);
-  const dias = [...new Set(slotsDaTurma.map((s) => s.dia))].sort(
+  // horários em que a turma tem aula: só eles entram em troca
+  const slotsDaTurma = useMemo(() => {
+    const sem = new Set(p.semAula[turmaId] ?? []);
+    return slotsDoTurno.filter((s) => !sem.has(s.id));
+  }, [slotsDoTurno, p.semAula, turmaId]);
+  const dias = [...new Set(slotsDoTurno.map((s) => s.dia))].sort(
     (a, b) => a - b,
   );
-  const ordens = [...new Set(slotsDaTurma.map((s) => s.ordem))].sort(
+  const ordens = [...new Set(slotsDoTurno.map((s) => s.ordem))].sort(
     (a, b) => a - b,
   );
   const aulaNoSlot = useMemo(() => {
@@ -301,7 +308,22 @@ export function Editor(p: PropsEditor) {
                   const slot = slotsDaTurma.find(
                     (s) => s.dia === d && s.ordem === o,
                   );
-                  if (!slot) return <td key={d} className="border" />;
+                  if (!slot) {
+                    const semAula = slotsDoTurno.some(
+                      (s) => s.dia === d && s.ordem === o,
+                    );
+                    return semAula ? (
+                      <td
+                        key={d}
+                        title="Horário sem aula da turma"
+                        className="border bg-gray-100 px-3 py-2 text-center text-xs text-muted-foreground"
+                      >
+                        sem aula
+                      </td>
+                    ) : (
+                      <td key={d} className="border" />
+                    );
+                  }
                   const aula = aulaNoSlot.get(slot.id);
                   const rotulo = aula
                     ? p.rotulos[aula.atribuicao_id]

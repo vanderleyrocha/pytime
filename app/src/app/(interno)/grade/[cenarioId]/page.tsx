@@ -213,6 +213,16 @@ export default async function PaginaGrade({
 
   const celulasDe = (m: Map<string, Celula> | undefined) =>
     Object.fromEntries(m ?? []);
+  // horários sem aula vêm do snapshot da geração, contra o qual a grade é
+  // avaliada (não do cadastro atual)
+  const semAulaPorTurma: Record<string, string[]> = Object.fromEntries(
+    (instancia?.turmas ?? []).map((t) => [
+      t.id,
+      Object.entries(t.disponibilidade ?? {})
+        .filter(([, st]) => st === "indisponivel")
+        .map(([slotId]) => slotId),
+    ]),
+  );
   const grades: GradeExibida[] = [];
   if (visao === "turma" && turmaAtiva) {
     grades.push({
@@ -220,6 +230,7 @@ export default async function PaginaGrade({
       dono: { eixo: "turma", id: turmaAtiva.id },
       slots: slotsDoTurno(turmaAtiva.turno_id),
       celulas: celulasDe(porTurma.get(turmaAtiva.id)),
+      semAula: semAulaPorTurma[turmaAtiva.id],
     });
   } else if (visao === "professor" && alvoAtivo) {
     for (const tn of turnosR.data ?? []) {
@@ -241,6 +252,7 @@ export default async function PaginaGrade({
         dono: { eixo: "turma", id: t.id },
         slots: slotsDoTurno(alvoAtivo),
         celulas: celulasDe(porTurma.get(t.id)),
+        semAula: semAulaPorTurma[t.id],
       });
     }
   }
@@ -340,6 +352,7 @@ export default async function PaginaGrade({
           turmas={turmasR.data ?? []}
           slots={slots}
           turmaInicial={turmaAtiva?.id ?? turmasR.data?.[0]?.id ?? ""}
+          semAula={semAulaPorTurma}
           turmaDaAtribuicao={Object.fromEntries(
             (atribR.data ?? []).map((a) => [a.id, a.turma_id]),
           )}

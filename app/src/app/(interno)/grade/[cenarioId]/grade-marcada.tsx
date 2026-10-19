@@ -20,6 +20,8 @@ export type GradeExibida = {
   dono: DonoGrade;
   slots: Slot[];
   celulas: Record<string, CelulaAula>;
+  /** Horários sem aula da turma (grade de turma). */
+  semAula?: string[];
 };
 
 export type PropsGradeMarcada = {
@@ -168,6 +170,7 @@ function TabelaMarcada({
   destaque: RefOcorrencia | null;
 }) {
   const { slots, celulas } = grade;
+  const semAula = new Set(grade.semAula ?? []);
   const dias = [...new Set(slots.map((s) => s.dia))].sort((a, b) => a - b);
   const ordens = [...new Set(slots.map((s) => s.ordem))].sort((a, b) => a - b);
   return (
@@ -203,7 +206,9 @@ function TabelaMarcada({
                 <td
                   key={d}
                   title={dica || undefined}
-                  className="relative border px-3 py-2 text-center"
+                  className={`relative border px-3 py-2 text-center ${
+                    slot && semAula.has(slot.id) && !cel ? "bg-gray-100" : ""
+                  }`}
                   style={
                     realce
                       ? {
@@ -240,6 +245,10 @@ function TabelaMarcada({
                       style={{ borderColor: cor[regras[0]] }}
                     >
                       vago
+                    </span>
+                  ) : slot && semAula.has(slot.id) ? (
+                    <span className="text-xs text-muted-foreground">
+                      sem aula
                     </span>
                   ) : (
                     <span className="text-muted-foreground">—</span>
