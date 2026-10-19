@@ -33,7 +33,8 @@ class ContextoModelo:
 
     Estruturais (sempre ativas, não parametrizáveis):
     - cada aula ocupa exatamente 1 slot;
-    - turma tem exatamente 1 aula por slot (matriz cheia);
+    - turma tem exatamente 1 aula por slot disponível (matriz cheia); slot
+      que a turma marcou como indisponível não existe para ela (sem variável);
     - professor dá no máximo 1 aula por slot;
     - quebra de simetria entre aulas da mesma atribuição.
     """
@@ -45,7 +46,7 @@ class ContextoModelo:
             Aula(a, i) for a in instancia.atribuicoes for i in range(a.carga_semanal)
         ]
         self._slots_turma: dict[str, list[Slot]] = {
-            t.id: instancia.slots_do_turno(t.turno_id) for t in instancia.turmas
+            t.id: instancia.slots_da_turma(t) for t in instancia.turmas
         }
         self.custos: dict[str, list[TermoCusto]] = defaultdict(list)
         self.assumptions: dict[str, cp_model.IntVar] = {}
