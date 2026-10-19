@@ -41,11 +41,13 @@ Um único arquivo `.json` em UTF-8, validado por `pacote-carga.schema.json`:
               "ano_letivo": 2027, "gerado_em": "2026-10-18T10:00:00-05:00" },
   "turnos": [...], "horarios": [...], "turmas": [...],
   "disciplinas": [...], "professores": [...], "recursos": [...],
-  "disponibilidades": [...], "atribuicoes": [...], "regras": [...]
+  "disponibilidades": [...], "turmas_sem_aula": [...],
+  "disponibilidades_disciplina": [...], "atribuicoes": [...], "regras": [...]
 }
 ```
 
-`recursos`, `disponibilidades` e `regras` são opcionais. As demais seções são
+`recursos`, `disponibilidades`, `turmas_sem_aula`,
+`disponibilidades_disciplina` e `regras` são opcionais. As demais seções são
 obrigatórias, mas podem vir vazias quando a origem não tiver esses dados.
 
 ### 2.2 CSV (preferencial para planilhas e conferência humana)
@@ -135,6 +137,33 @@ precisa existir em `horarios`.
 | `ordem` | inteiro ≥ 0 | ✔ | |
 | `status` | `disponivel` \| `indisponivel` \| `prefere` \| `evita` | ✔ | `indisponivel` é hard; `prefere`/`evita` são preferências |
 
+### turmas_sem_aula → tabela `turmas_sem_aula` (opcional)
+Horários do turno em que a turma **não tem aula** (ex.: o 1º ano sai mais cedo
+na sexta). O motor não aloca nada neles e a carga da turma passa a somar só os
+demais horários. A chave natural é **(turma, turno, dia, ordem)**; o horário
+precisa existir e ser do turno da turma. Substitui o contorno de professores
+fictícios ("Vago") com uma disciplina "Horário livre".
+| Campo | Tipo | Obr. | Descrição |
+|---|---|---|---|
+| `turma` | código de turma | ✔ | |
+| `turno` | código de turno | ✔ | o turno da turma |
+| `dia` | 0–6 | ✔ | |
+| `ordem` | inteiro ≥ 0 | ✔ | |
+
+### disponibilidades_disciplina → tabela `disponibilidades_disciplina` (opcional)
+Como `disponibilidades`, mas da **disciplina** (vale para todas as turmas;
+ex.: Educação Física só quando a quadra está livre). `indisponivel` é
+aplicado pela regra `disponibilidade_disciplina`; `prefere`/`evita`, pela
+regra `preferencia_disciplina_horario`. A chave natural é
+**(disciplina, turno, dia, ordem)**.
+| Campo | Tipo | Obr. | Descrição |
+|---|---|---|---|
+| `disciplina` | código de disciplina | ✔ | |
+| `turno` | código de turno | ✔ | |
+| `dia` | 0–6 | ✔ | |
+| `ordem` | inteiro ≥ 0 | ✔ | |
+| `status` | `disponivel` \| `indisponivel` \| `prefere` \| `evita` | ✔ | |
+
 ### atribuicoes → tabelas `atribuicoes` + `atribuicao_recursos`
 "Professor X leciona disciplina Y na turma Z, N aulas por semana." A chave
 natural é **(professor, disciplina, turma)**, que precisa ser única.
@@ -151,7 +180,7 @@ natural é **(professor, disciplina, turma)**, que precisa ser única.
 | Campo | Tipo | Obr. | Descrição |
 |---|---|---|---|
 | `codigo` | código | ✔ | identifica a regra para reimportação |
-| `tipo` | um dos 10 tipos do catálogo | ✔ | ver tabela abaixo |
+| `tipo` | um dos 12 tipos da tabela abaixo | ✔ | ver tabela abaixo |
 | `hard` | booleano | ✔ | precisa respeitar o modo do tipo |
 | `peso` | inteiro ≥ 1 | 1 | peso da penalidade (soft) |
 | `ativa` | booleano | true | |
@@ -159,8 +188,8 @@ natural é **(professor, disciplina, turma)**, que precisa ser única.
 
 | `tipo` | `hard` | `parametros` |
 |---|---|---|
-| `disponibilidade_professor`, `geminadas`, `recurso_compartilhado` | sempre `true` | `{}` |
-| `janelas_professor`, `preferencia_professor`, `compactacao_dias` | sempre `false` | `{}` |
+| `disponibilidade_professor`, `geminadas`, `recurso_compartilhado`, `disponibilidade_disciplina` | sempre `true` | `{}` |
+| `janelas_professor`, `preferencia_professor`, `compactacao_dias`, `preferencia_disciplina_horario` | sempre `false` | `{}` |
 | `distribuicao_disciplina` | sempre `false` | `{"max_por_dia": 2}` |
 | `preferencia_disciplina` | sempre `false` | `{"disciplina": "MAT", "ordens": [0,1], "modo": "prefere"}` (`modo`: `evita`\|`prefere`) |
 | `ultimo_horario` | `true` ou `false` | `{"disciplina": "EDF"}` |
@@ -177,7 +206,8 @@ A ordem segue as dependências de chave estrangeira:
 ```
 turnos → horarios → turmas
 disciplinas, professores, recursos
-→ disponibilidades (professor + horário)
+→ disponibilidades (professor + horário), turmas_sem_aula (turma + horário),
+  disponibilidades_disciplina (disciplina + horário)
 → atribuicoes (professor + disciplina + turma) → atribuicao_recursos
 → regras (referenciam disciplinas)
 ```
@@ -192,11 +222,14 @@ prosseguir.
 1. O pacote viola o JSON Schema: tipo, campo obrigatório, enum, `hard`
    incompatível com o tipo da regra ou formato de hora.
 2. `codigo` duplicado dentro de uma entidade.
-3. Chave natural duplicada em `horarios`, `disponibilidades` ou `atribuicoes`.
+3. Chave natural duplicada em `horarios`, `disponibilidades`,
+   `turmas_sem_aula`, `disponibilidades_disciplina` ou `atribuicoes`.
 4. A referência a um código não existe, nem no pacote nem já cadastrada na
    unidade. Isso vale para os turnos de horários e turmas, para
    professor/disciplina/turma/recursos das atribuições, para o horário das
-   disponibilidades e para as disciplinas das regras.
+   disponibilidades (de professor e de disciplina) e dos horários sem aula,
+   para a turma e a disciplina dessas seções e para as disciplinas das regras.
+   O horário sem aula precisa ser do turno da turma.
 5. `2 × geminadas > carga_semanal`.
 6. `hora_fim <= hora_inicio`, quando as duas são informadas.
 7. `nao_mesmo_dia` com `disciplina_a == disciplina_b`.
@@ -204,8 +237,8 @@ prosseguir.
 **Avisos** (o mesmo diagnóstico que o motor faria na geração):
 
 - **Matriz incompleta:** a soma de `carga_semanal` das atribuições da turma é
-  diferente do nº de horários do turno dela. O motor exige igualdade
-  (`Instancia.validar_matriz_cheia`).
+  diferente do nº de horários do turno dela, descontados os `turmas_sem_aula`
+  da turma. O motor exige igualdade (`Instancia.validar_matriz_cheia`).
 - A carga semanal do professor passa do nº de horários em que ele está
   disponível.
 - Turma sem nenhuma atribuição.
@@ -269,6 +302,7 @@ exportação equivale a uma escola (`escolas.id` = INEP) num ano letivo
 | `atribuicoes.geminadas` | não existe | exportar `0` e ajustar no PyTime |
 | `recursos` | não existe | omitir e cadastrar no PyTime |
 | `disponibilidades` | não existe | omitir e cadastrar no PyTime |
+| `turmas_sem_aula`, `disponibilidades_disciplina` | não existe | omitir e cadastrar no PyTime |
 | `regras` | não existe | omitir, ou exportar um conjunto padrão da escola |
 
 Pontos de atenção:

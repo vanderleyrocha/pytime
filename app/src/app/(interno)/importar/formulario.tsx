@@ -14,6 +14,8 @@ const ROTULOS: Record<string, string> = {
   professores: "Professores",
   recursos: "Recursos",
   disponibilidades: "Disponibilidades",
+  turmas_sem_aula: "Horários sem aula",
+  disponibilidades_disciplina: "Disponibilidades de disciplina",
   atribuicoes: "Atribuições",
   regras: "Regras",
 };

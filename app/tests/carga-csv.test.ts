@@ -51,6 +51,22 @@ describe("pacoteDeCsv", () => {
     expect(r.pacote).toEqual(validarPacote(json, vazio).pacote);
   });
 
+  it("lê horários sem aula da turma e disponibilidade da disciplina", () => {
+    const { bruto, erros } = pacoteDeCsv({
+      "origem.csv": "versao;sistema;gerado_em\n1.0;x;2026-10-18T10:00:00Z\n",
+      "turmas_sem_aula.csv": "turma;turno;dia;ordem\nTUR-1;MANHA;4;4\n",
+      "disponibilidades_disciplina.csv":
+        "disciplina;turno;dia;ordem;status\nDIS-8;MANHA;0;0;indisponivel\n",
+    });
+    expect(erros).not.toContain('Arquivo "turmas_sem_aula.csv" não faz parte do pacote.');
+    expect(bruto.turmas_sem_aula).toEqual([
+      { turma: "TUR-1", turno: "MANHA", dia: 4, ordem: 4 },
+    ]);
+    expect(bruto.disponibilidades_disciplina).toEqual([
+      { disciplina: "DIS-8", turno: "MANHA", dia: 0, ordem: 0, status: "indisponivel" },
+    ]);
+  });
+
   it("converte números, booleanos, listas e parâmetros JSON", () => {
     const { bruto } = pacoteDeCsv({
       "origem.csv": "versao;sistema;gerado_em\n1.0;x;2026-10-18T10:00:00Z\n",
