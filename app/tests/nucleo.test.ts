@@ -125,10 +125,48 @@ describe("traduzirNucleo", () => {
         "ultimo_horario:g2",
         "aulas_juntas:t1",
         "disciplina_sincronizada:g3",
+        "disponibilidade_disciplina:d2",
       ],
       instancia,
     );
     for (const t of textos) expect(t).toContain("Como resolver:");
+  });
+
+  it("traduz disponibilidade da disciplina pelo nome", () => {
+    const [texto] = traduzirNucleo(["disponibilidade_disciplina:d2"], instancia);
+    expect(texto).toContain("Educação Física");
+    expect(texto).not.toContain("d2");
+  });
+
+  it("geminadas descontam os horários sem aula da turma", () => {
+    const comSlots: InstanciaMotor = {
+      ...instancia,
+      slots: [
+        { id: "s1", dia: 0, ordem: 0, turno_id: "tn1" },
+        { id: "s2", dia: 0, ordem: 1, turno_id: "tn1" },
+        { id: "s3", dia: 1, ordem: 0, turno_id: "tn1" },
+        { id: "s4", dia: 1, ordem: 1, turno_id: "tn1" },
+      ],
+      turmas: [
+        {
+          id: "t1",
+          nome: "6º A",
+          turno_id: "tn1",
+          disponibilidade: { s4: "indisponivel" },
+        },
+      ],
+      atribuicoes: [
+        { ...instancia.atribuicoes[0], carga_semanal: 3, geminadas: 1 },
+        {
+          ...instancia.atribuicoes[0],
+          id: "a2",
+          carga_semanal: 4,
+          geminadas: 2,
+        },
+      ],
+    };
+    const [texto] = traduzirNucleo(["geminadas:a2"], comSlots);
+    expect(texto).toContain("só tem 1 par de horários seguidos disponível");
   });
 
   it("traduz recurso pelo nome", () => {
@@ -213,6 +251,16 @@ describe("traduzirViolacoes (edição manual)", () => {
     expect(duplo.texto).toMatch(/6º A/);
     expect(duplo.texto).toMatch(/duas aulas/);
     expect(vazio.slotIds).toEqual(["s1"]);
+  });
+
+  it("aula em horário sem aula da turma indica a turma e o horário", () => {
+    const [v] = traduzirViolacoes(
+      ["estrutural:turma_indisponivel:t1:s1"],
+      instancia,
+    );
+    expect(v.texto).toMatch(/6º A/);
+    expect(v.texto).toMatch(/não tem aula/);
+    expect(v.slotIds).toEqual(["s1"]);
   });
 
   it("aula fora do turno e carga diferente descrevem a atribuição", () => {

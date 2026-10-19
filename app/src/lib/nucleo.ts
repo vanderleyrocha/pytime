@@ -61,8 +61,8 @@ function plural(n: number, singular: string, varios: string): string {
 }
 
 /**
- * Máximo de pares disjuntos de horários seguidos da turma em que o professor
- * não está indisponível (cota superior dos pares geminados possíveis).
+ * Máximo de pares disjuntos de horários seguidos da turma (só os com aula)
+ * em que o professor não está indisponível (cota superior dos pares geminados possíveis).
  */
 function paresLivres(
   atribuicao: InstanciaMotor["atribuicoes"][number],
@@ -76,7 +76,11 @@ function paresLivres(
   const livre = (slotId: string) =>
     prof?.disponibilidade[slotId] !== "indisponivel";
   const slots = instancia.slots
-    .filter((s) => s.turno_id === turma.turno_id)
+    .filter(
+      (s) =>
+        s.turno_id === turma.turno_id &&
+        turma.disponibilidade?.[s.id] !== "indisponivel",
+    )
     .sort((a, b) => a.dia - b.dia || a.ordem - b.ordem);
   let pares = 0;
   for (let i = 0; i + 1 < slots.length; i++) {
@@ -133,6 +137,11 @@ function traduzirMotivo(
       const nome = nomes.professores.get(id) ?? `um professor removido (${id})`;
       return `Disponibilidade de ${nome}: os horários indisponíveis conflitam com as aulas atribuídas. Como resolver: libere mais horários na disponibilidade do professor ou reduza a carga dele.`;
     }
+    case "disponibilidade_disciplina": {
+      const nome =
+        nomes.disciplinas.get(id) ?? `uma disciplina removida (${id})`;
+      return `Disponibilidade da disciplina ${nome}: os horários indisponíveis não comportam as aulas atribuídas. Como resolver: libere mais horários na disponibilidade da disciplina (Disciplinas), reduza a carga dela ou desative a regra "${CATALOGO_REGRAS.disponibilidade_disciplina.rotulo}" em Regras.`;
+    }
     case "geminadas":
       return explicarGeminadas(id, instancia, nomes, contexto);
     case "recurso": {
@@ -157,7 +166,7 @@ function traduzirMotivo(
     case "disciplina_sincronizada": {
       const p = instancia.regras.find((r) => r.id === id)?.parametros ?? {};
       const d = nomes.disciplinas.get(String(p.disciplina_id)) ?? "?";
-      return `Regra "${CATALOGO_REGRAS.disciplina_sincronizada.rotulo}" (${d}): não é possível pôr a disciplina nos mesmos horários em todas as turmas — confira se a carga é igual em todas e se os professores estão disponíveis nesses horários. Como resolver: iguale a carga, libere esses horários na disponibilidade dos professores ou desative a regra em Regras.`;
+      return `Regra "${CATALOGO_REGRAS.disciplina_sincronizada.rotulo}" (${d}): não é possível pôr a disciplina nos mesmos horários em todas as turmas — confira se a carga é igual em todas, se os professores estão disponíveis nesses horários e se as turmas não têm horários sem aula diferentes. Como resolver: iguale a carga, libere esses horários na disponibilidade dos professores ou desative a regra em Regras.`;
     }
     case "estrutural": {
       const detalhe = traduzirEstrutural(resto, instancia, nomes);
@@ -203,6 +212,8 @@ function traduzirEstrutural(
       return `${turma()} tem duas aulas no mesmo horário (${quando}).`;
     case "turma_vazio":
       return `${turma()} ficou sem aula em ${quando}.`;
+    case "turma_indisponivel":
+      return `${turma()} não tem aula em ${quando} (horário sem aula da turma).`;
     case "fora_do_turno":
       return `${descreverAtribuicao(id, instancia, nomes)}: aula em ${quando}, fora do turno da turma.`;
     case "carga":
