@@ -48,10 +48,15 @@ export async function gerarHorario(
     cargaPorTurma[a.turma_id] =
       (cargaPorTurma[a.turma_id] ?? 0) + a.carga_semanal;
   }
+  const semAulaPorTurma: Record<string, number> = {};
+  for (const t of dados.turmasSemAula) {
+    semAulaPorTurma[t.turma_id] = (semAulaPorTurma[t.turma_id] ?? 0) + 1;
+  }
   const pendencias = calcularPendencias(
     dados.turmas,
     slotsPorTurno,
     cargaPorTurma,
+    semAulaPorTurma,
   );
   if (pendencias.length > 0) {
     return { erro: "Matriz incompleta — ajuste as atribuições.", pendencias };

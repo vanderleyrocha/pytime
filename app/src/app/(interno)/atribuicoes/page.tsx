@@ -26,6 +26,7 @@ export default async function PaginaAtribuicoes({
     { data: turmas },
     { data: recursos },
     { data: slots },
+    { data: semAula },
   ] = await Promise.all([
     supabase.from("professores").select("id, nome")
       .eq("unidade_id", perfil.unidade_id).order("nome"),
@@ -36,6 +37,8 @@ export default async function PaginaAtribuicoes({
     supabase.from("recursos").select("id, nome")
       .eq("unidade_id", perfil.unidade_id).order("nome"),
     supabase.from("slots").select("turno_id")
+      .eq("unidade_id", perfil.unidade_id),
+    supabase.from("turmas_sem_aula").select("turma_id")
       .eq("unidade_id", perfil.unidade_id),
   ]);
 
@@ -80,7 +83,16 @@ export default async function PaginaAtribuicoes({
   for (const a of todas ?? []) {
     cargaPorTurma[a.turma_id] = (cargaPorTurma[a.turma_id] ?? 0) + a.carga_semanal;
   }
-  const pendencias = calcularPendencias(turmas ?? [], slotsPorTurno, cargaPorTurma);
+  const semAulaPorTurma: Record<string, number> = {};
+  for (const s of semAula ?? []) {
+    semAulaPorTurma[s.turma_id] = (semAulaPorTurma[s.turma_id] ?? 0) + 1;
+  }
+  const pendencias = calcularPendencias(
+    turmas ?? [],
+    slotsPorTurno,
+    cargaPorTurma,
+    semAulaPorTurma,
+  );
 
   return (
     <div className="flex flex-col gap-6">
