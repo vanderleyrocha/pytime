@@ -17,8 +17,10 @@ class RegraDisciplinaSincronizada(Regra):
     Limitações: só alinha turmas do mesmo turno (turnos diferentes têm
     horários distintos); cargas diferentes entre as turmas, ou o mesmo
     professor dando a disciplina em duas turmas do turno, tornam a versão
-    hard inviável. Para as aulas ficarem juntas, use as geminadas da
-    atribuição ou a regra "aulas_juntas".
+    hard inviável. Horário sem aula numa turma também tira a disciplina
+    desse horário nas outras (a comparação usa a união dos horários). Para
+    as aulas ficarem juntas, use as geminadas da atribuição ou a regra
+    "aulas_juntas".
     """
 
     tipo = "disciplina_sincronizada"
@@ -47,9 +49,16 @@ class RegraDisciplinaSincronizada(Regra):
 
         for turmas in turmas_por_turno.values():
             referencia, *outras = turmas
-            slots = ctx.slots_da_turma(referencia)
             for turma_id in outras:
-                for s in slots:
+                # união dos horários das duas turmas: o que só uma delas tem
+                # (horário sem aula na outra) também precisa ficar sem a
+                # disciplina; occ_atribuicao vale 0 onde a turma não tem slot
+                slots = {
+                    s.id: s
+                    for t in (referencia, turma_id)
+                    for s in ctx.slots_da_turma(t)
+                }
+                for s in sorted(slots.values(), key=lambda s: (s.dia, s.ordem)):
                     if self.config.hard:
                         lit = ctx.assumption(
                             f"disciplina_sincronizada:{self.config.id}"

@@ -5,7 +5,11 @@ from .base import Regra, registrar
 
 @registrar
 class RegraUltimoHorario(Regra):
-    """Disciplina X não no último horário do dia. Hard ou soft."""
+    """Disciplina X não no último horário do dia. Hard ou soft.
+
+    O último horário é o da turma: se ela não tem aula nos últimos horários
+    do turno num dia (horários sem aula), vale o último em que ela tem aula.
+    """
 
     tipo = "ultimo_horario"
 
